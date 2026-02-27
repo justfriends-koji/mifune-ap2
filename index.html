@@ -10,7 +10,7 @@
     <style>
         :root { --primary: #f39c12; --secondary: #fbb03b; --bg: #f8f8f8; --text: #333; --accent: #2ecc71; --gray: #999; --danger: #e74c3c; --info: #3498db; --dark: #444; }
         
-        /* 全般設定 */
+        /* iPhone 操作感向上 & ズーム禁止 */
         * { touch-action: manipulation; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { font-family: sans-serif; margin: 0; background: var(--bg); color: var(--text); -webkit-user-select: none; overflow: hidden; height: 100vh; height: 100dvh; }
         
@@ -28,27 +28,26 @@
 
         /* 1. 席選択 */
         .grid-tables { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: min-content; gap: 10px; padding: 15px; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
-        .table-btn { background: #fff; border: 2px solid var(--accent); padding: 15px 5px; text-align: center; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 90px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .table-btn { background: #fff; border: 2px solid var(--accent); padding: 15px 5px; text-align: center; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 95px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .table-btn.occupied { background: #e8f5e9; border-color: #27ae60; }
         .price-badge { display: block; font-size: 11px; color: #e67e22; margin-top: 5px; font-weight: bold; }
 
-        /* ★ 2. オーナーログイン：入力欄を特大化 */
+        /* 2. ログイン入力欄（特大） */
         .login-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; background: #fff; }
         .login-title { font-size: 24px; font-weight: bold; margin-bottom: 40px; color: var(--dark); }
         .login-input { 
             width: 100%; max-width: 450px; padding: 25px; margin-bottom: 25px; 
-            border: 3px solid #ddd; border-radius: 18px; font-size: 28px; /* 文字を特大に */
+            border: 3px solid #ddd; border-radius: 18px; font-size: 28px; 
             background: #fafafa; -webkit-appearance: none;
         }
-        .login-input:focus { border-color: var(--primary); outline: none; background: #fff; }
 
-        /* 3. 客数入力キーパッド (巨大) */
+        /* 3. 客数入力（巨大） */
         .guest-input-container { text-align: center; padding: 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; }
         .guest-num-display { font-size: 60px; font-weight: bold; margin-bottom: 20px; color: var(--primary); background: #eee; border-radius: 15px; padding: 15px; width: 100%; max-width: 400px; margin-left: auto; margin-right: auto; }
         .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; max-width: 450px; margin: 0 auto; }
         .key-btn { background: #fff; border: 1px solid #ddd; padding: 25px 0; font-size: 32px; font-weight: bold; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; }
 
-        /* 4. メニュー (ボタン大型) */
+        /* 4. メニュー (タイル型) */
         .menu-container { display: flex; flex: 1; overflow: hidden; }
         .sidebar { width: 105px; background: #f0f0f0; overflow-y: auto; border-right: 1px solid #ddd; flex-shrink: 0; box-sizing: border-box; padding-bottom: 150px !important; }
         .cat { padding: 20px 8px; font-size: 13px; text-align: center; border-bottom: 1px solid #ddd; cursor: pointer; color: #555; line-height: 1.4; }
@@ -56,7 +55,7 @@
         .item-grid { flex: 1; overflow-y: auto; padding: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; align-content: start; background: #fff; padding-bottom: 150px !important; }
         .item-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-height: 170px; }
         .item-name { font-weight: bold; font-size: 14px; height: 2.8em; overflow: hidden; line-height: 1.4; margin-bottom: 5px; }
-        .item-price { color: #e67e22; font-weight: bold; font-size: 15px; }
+        .item-price { color: #e67e22; font-weight: bold; font-size: 15px; margin-bottom: 8px; }
         .qty-ctrl { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #f0f0f0; padding-top: 10px; }
         .btn-circle { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #ccc; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; }
         .btn-add { background: var(--primary); color: #fff; border: none; padding: 12px 0; border-radius: 25px; font-size: 15px; font-weight: bold; flex: 1; margin-left: 10px; box-shadow: 0 3px 6px rgba(243,156,18,0.3); }
@@ -70,12 +69,21 @@
         .list-container { flex: 1; overflow-y: auto; background: #fff; -webkit-overflow-scrolling: touch; padding-bottom: 100px; }
         .list-row { display: flex; justify-content: space-between; padding: 18px; border-bottom: 1px solid #eee; align-items: center; }
         .summary-area { padding: 15px 25px; text-align: right; background: #fff; border-top: 2px solid #eee; flex-shrink: 0; line-height: 1.6; font-size: 15px; }
-        .btn-large { width: 90%; display: block; margin: 10px auto; padding: 22px; border: none; border-radius: 40px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .btn-del-sale { background: var(--danger); color: white; border: none; padding: 8px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-        .report-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; background: #fff; border-bottom: 1px solid #ddd; }
-        .btn-report { background: var(--info); color: #fff; border: none; padding: 25px 0; border-radius: 12px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-large { width: 90%; display: block; margin: 10px auto; padding: 20px; border: none; border-radius: 40px; font-size: 20px; font-weight: bold; cursor: pointer; text-align: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 
-        /* モーダル */
+        /* 売上管理画面：カード枠を復活 */
+        .sale-card { background: #fff; margin: 12px; padding: 15px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); position: relative; border-left: 10px solid var(--info); }
+        .sale-time-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; }
+        .sale-time { font-size: 18px; font-weight: bold; color: var(--dark); }
+        .sale-table-badge { background: #eee; padding: 4px 10px; border-radius: 8px; font-size: 14px; font-weight: bold; }
+        .sale-detail-info { font-size: 14px; color: #666; margin-bottom: 10px; }
+        .sale-total-line { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .sale-price-big { font-size: 24px; font-weight: bold; color: var(--primary); }
+        .btn-del-sale { background: var(--danger); color: white; border: none; padding: 8px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; }
+
+        .report-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; background: #fff; border-bottom: 1px solid #ddd; flex-shrink: 0; }
+        .btn-report { background: var(--info); color: #fff; border: none; padding: 22px 0; border-radius: 12px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; }
+
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: center; padding: 20px 0; }
         .modal { background: #fff; width: 90%; max-width: 340px; border-radius: 20px; padding: 20px; text-align: center; position: relative; max-height: 90dvh; overflow-y: auto; }
         .receipt-sample { background: #fff; padding: 15px; color: #000; font-family: monospace; text-align: left; font-size: 11px; border: 1px dashed #ccc; width: 100%; }
@@ -84,7 +92,7 @@
 </head>
 <body>
 
-<!-- Firebase SDK -->
+<!-- Firebase リアルタイム同期設定 -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc, query, orderBy, getDocs, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -107,29 +115,44 @@
     window.currentUser = null;
     window.isEditing = false;
 
-    // 認証監視
+    // 認証監視：ログイン完了を検知して画面を切り替える
     onAuthStateChanged(auth, (user) => {
         window.currentUser = user;
-        const btn = document.getElementById('admin-btn-label');
+        const btnLabel = document.getElementById('admin-btn-label');
         if(user) {
-            btn.innerText = "売上管理(店主)";
-            btn.style.background = "#e8f5e9";
-            // ★ ログイン成功時に自動で売上画面を表示
+            btnLabel.innerText = "売上管理(店主)";
+            btnLabel.style.background = "#e8f5e9";
             if(document.getElementById('view-login').style.display !== 'none') {
-                showAdmin();
+                showAdmin(); // ログイン画面なら売上画面へ
             }
         } else {
-            btn.innerText = "売上管理";
-            btn.style.background = "#fff";
+            btnLabel.innerText = "売上管理";
+            btnLabel.style.background = "#fff";
         }
     });
+
+    window.loginOwner = async (email, pass) => {
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+            alert("ログイン成功");
+            showAdmin();
+        } catch(e) {
+            alert("ログイン失敗: パスワードまたはメールアドレスが違います。");
+        }
+    };
+
+    window.logoutOwner = () => { signOut(auth); alert("ログアウト完了"); showIndex(); };
 
     // クラウド監視
     onSnapshot(collection(db, "tables"), (snapshot) => {
         if(window.isEditing) return;
-        const tablesL = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
+        const tablesList = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
         const cloudIds = snapshot.docs.map(d => d.id);
-        tablesL.forEach(tId => { if(!cloudIds.includes(tId)) { localStorage.removeItem('history_'+tId); localStorage.removeItem('guests_'+tId); localStorage.removeItem('checkin_'+tId); } });
+        tablesList.forEach(tId => {
+            if(!cloudIds.includes(tId)) {
+                localStorage.removeItem('history_'+tId); localStorage.removeItem('guests_'+tId); localStorage.removeItem('checkin_'+tId);
+            }
+        });
         snapshot.forEach((doc) => {
             const tId = doc.id; const data = doc.data();
             localStorage.setItem('history_'+tId, JSON.stringify(data.history || []));
@@ -139,26 +162,44 @@
         renderIndex(); updateFooter();
     });
 
-    window.loginOwner = async (email, pass) => { try { await signInWithEmailAndPassword(auth, email, pass); } catch(e) { alert("認証エラー: パスワードを確認してください"); } };
-    window.logoutOwner = () => { signOut(auth); alert("ログアウト完了"); showIndex(); };
-    window.cloudSync = async (tableId) => { await setDoc(doc(db, "tables", tableId), { history: JSON.parse(localStorage.getItem('history_' + tableId) || '[]'), guests: parseInt(localStorage.getItem('guests_' + tableId)) || 0, checkin: localStorage.getItem('checkin_' + tableId) || "--:--", updatedAt: Timestamp.now() }); };
+    window.cloudSync = async (tableId) => {
+        await setDoc(doc(db, "tables", tableId), {
+            history: JSON.parse(localStorage.getItem('history_' + tableId) || '[]'),
+            guests: parseInt(localStorage.getItem('guests_' + tableId)) || 0,
+            checkin: localStorage.getItem('checkin_' + tableId) || "--:--",
+            updatedAt: Timestamp.now()
+        });
+    };
+
     window.saveSaleToCloud = async (tableId) => {
-        const hist = JSON.parse(localStorage.getItem('history_'+tableId) || '[]'); if(hist.length === 0) return;
-        const guests = parseInt(localStorage.getItem('guests_'+tableId)) || 0; const checkin = localStorage.getItem('checkin_'+tableId);
-        let sub = 0, tx = 0; hist.forEach(i => { sub += i.price * i.qty; tx += Math.floor(i.price * i.qty * i.rate); });
-        await addDoc(collection(db, "sales"), { tableId: tableId, guests: guests, checkin: checkin, checkout: new Date().getHours().toString().padStart(2, '0') + ":" + new Date().getMinutes().toString().padStart(2, '0'), items: hist, subtotal: sub, tax: tx, total: sub + tx, timestamp: Timestamp.now() });
+        const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
+        if(hist.length === 0) return;
+        const guests = parseInt(localStorage.getItem('guests_' + tableId)) || 0;
+        const checkin = localStorage.getItem('checkin_' + tableId) || "--:--";
+        let subtotal = 0, tax = 0;
+        hist.forEach(i => { subtotal += i.price * i.qty; tax += Math.floor(i.price * i.qty * i.rate); });
+
+        await addDoc(collection(db, "sales"), {
+            tableId: tableId, guests: guests, checkin: checkin,
+            checkout: new Date().getHours().toString().padStart(2, '0') + ":" + new Date().getMinutes().toString().padStart(2, '0'),
+            items: hist, subtotal: subtotal, tax: tax, total: subtotal + tax, timestamp: Timestamp.now()
+        });
         await deleteDoc(doc(db, "tables", tableId));
     };
+
     window.getSalesData = async (mode) => {
-        const now = new Date(); let start; if (mode === 'day') start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); else start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const now = new Date(); let start;
+        if (mode === 'day') start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        else start = new Date(now.getFullYear(), now.getMonth(), 1);
         const q = query(collection(db, "sales"), where("timestamp", ">=", Timestamp.fromDate(start)), orderBy("timestamp", "desc"));
-        const snap = await getDocs(q); let res = []; snap.forEach(d => { let data = d.data(); data.id = d.id; res.push(data); }); return res;
+        const snap = await getDocs(q);
+        let res = []; snap.forEach(d => { let data = d.data(); data.id = d.id; res.push(data); });
+        return res;
     };
-    window.deleteSaleDoc = async (id) => { if(confirm("消去しますか？")) { await deleteDoc(doc(db, "sales", id)); showAdmin(); } };
+    window.deleteSaleDoc = async (id) => { if(confirm("この会計記録を消去しますか？")) { await deleteDoc(doc(db, "sales", id)); showAdmin(); } };
     window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tableId)); };
 </script>
 
-<!-- 1. 席選択 -->
 <div id="view-index" class="view active">
     <header>
         <div class="admin-btn" id="admin-btn-label" onclick="checkAdminAuth()">売上管理</div>
@@ -168,20 +209,18 @@
     <div class="grid-tables" id="table-grid"></div>
 </div>
 
-<!-- 2. オーナー認証 (入力欄特大) -->
 <div id="view-login" class="view">
     <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>認証</span></div></header>
     <div class="login-container">
         <div class="login-title">店主ログイン</div>
         <input type="email" id="login-email" class="login-input" placeholder="メールアドレス">
         <input type="password" id="login-pass" class="login-input" placeholder="パスワード">
-        <button class="btn-large" style="background:var(--primary); color:white; margin-top:20px;" onclick="handleLogin()">認証して売上を表示</button>
+        <button class="btn-large" style="background:var(--primary); color:white; margin-top:20px;" onclick="handleLogin()">ログインして売上を表示</button>
     </div>
 </div>
 
-<!-- 3. 売上管理 -->
 <div id="view-admin" class="view">
-    <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>本日売上</span></div><div style="font-size:12px; color:var(--danger);" onclick="logoutOwner()">終了</div></header>
+    <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>売上管理</span></div><div style="font-size:12px; color:var(--danger);" onclick="logoutOwner()">終了</div></header>
     <div style="padding:15px; background:var(--dark); color:#fff; display:flex; justify-content:space-around; text-align:center; font-size:13px;">
         <div>件数<br><span id="sum-count" style="font-size:20px; font-weight:bold;">0</span></div>
         <div>客数<br><span id="sum-guests" style="font-size:20px; font-weight:bold;">0</span></div>
@@ -191,18 +230,10 @@
         <button class="btn-report" onclick="printReport('day')">日計印刷</button>
         <button class="btn-report" onclick="printReport('month')" style="background:var(--accent);">月計印刷</button>
     </div>
-    <div class="list-container" id="sales-list" style="background:#f4f4f4;"></div>
+    <div class="list-container" id="sales-list" style="background:#f4f4f4; padding:5px 0;"></div>
 </div>
 
-<div id="view-guest" class="view">
-    <header><span class="back-btn" onclick="showIndex()">＜</span>客数入力</header>
-    <div class="guest-input-container">
-        <h2 id="guest-table-name"></h2>
-        <div class="guest-num-display"><span id="guest-count-val">0</span> 名</div>
-        <div class="keypad" id="guest-keypad"></div>
-    </div>
-</div>
-
+<div id="view-guest" class="view"><header><span class="back-btn" onclick="showIndex()">＜</span>客数入力</header><div class="guest-input-container"><h2 id="guest-table-name"></h2><div class="guest-num-display"><span id="guest-count-val">0</span> 名</div><div class="keypad" id="guest-keypad"></div></div></div>
 <div id="view-menu" class="view">
     <header><span class="back-btn" onclick="showIndex()">×</span><span id="display-table-id"></span>番席 (<span id="display-guest-count"></span>名)<span style="margin-left:auto; font-size:11px; color:#666;">入店: <span id="display-checkin-time"></span></span></header>
     <div class="menu-container"><div class="sidebar" id="side-cats"></div><div class="item-grid" id="display-items"></div></div>
@@ -213,7 +244,7 @@
 </div>
 
 <div id="view-cart" class="view"><header><span class="back-btn" onclick="exitEditing()">＜</span>カート確認</header><div class="list-container" id="cart-items-list"></div><div style="background:#fff; border-top:1px solid #eee; padding-bottom:10px;"><button class="btn-large" style="background:var(--info); color:white;" onclick="testSend()">送信(同期のみ)</button><button class="btn-large" style="background:var(--primary);color:white;" onclick="sendToKitchen()">本番送信</button></div></div>
-<div id="view-history" class="view"><header><span class="back-btn" onclick="exitEditing()">＜</span>修正</header><div class="list-container" id="history-items-list"></div><div class="summary-area" id="history-summary"></div><div style="background:#fff; border-top:1px solid #ddd; padding-bottom:10px;"><button class="btn-large" style="background:var(--accent); color:white;" onclick="confirmHistoryChange()">変更を保存(同期)</button><button class="btn-large" style="background:var(--secondary); color:white;" onclick="showCheckout()">お会計確定へ</button></div></div>
+<div id="view-history" class="view"><header><span class="back-btn" onclick="exitEditing()">＜</span>修正</header><div class="list-container" id="history-items-list"></div><div class="summary-area" id="history-summary"></div><div style="background:#fff; border-top:1px solid #ddd; padding-bottom:10px;"><button class="btn-large" style="background:var(--accent); color:white;" onclick="confirmHistoryChange()">保存して同期</button><button class="btn-large" style="background:var(--secondary); color:white;" onclick="showCheckout()">お会計確定へ</button></div></div>
 <div id="view-checkout" class="view"><header><span class="back-btn" onclick="showOrderHistory()">＜</span>会計確定</header><div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;"><div style="padding:30px 20px; background:#fff; border-radius:15px; text-align:center; box-shadow:0 4px 10px rgba(0,0,0,0.1); width:85%;"><div id="checkout-final-total" style="font-size:40px; font-weight:bold; color:var(--primary);">¥0</div><div id="checkout-final-info" style="color:#666; font-size:12px;"></div></div></div><button class="btn-large" style="background:var(--info); color:white;" onclick="testPay()">【テスト】会計完了</button><button class="btn-large" style="background:var(--accent);color:white;" onclick="openReceiptChoice()">本番会計</button></div>
 <div id="overlay-receipt" class="overlay"><div class="modal"><div id="receipt-preview-area" style="display:none;"><div class="modal-title">印刷プレビュー</div><div id="sample-receipt-content" class="receipt-sample"></div></div><div class="modal-title" id="receipt-modal-main-title">印刷しますか？</div><button class="btn-large" style="background:var(--primary); color:white;" onclick="pay(true)">印刷して完了</button><button class="btn-large" style="background:var(--gray); color:white;" onclick="pay(false)">印刷せずに完了</button><div style="margin-top:15px; color:var(--info); font-size:12px; cursor:pointer;" onclick="closeReceiptChoice()">キャンセル</div></div></div>
 <div id="view-success" class="view" style="text-align:center; justify-content:center;"><h2>送信完了</h2><button class="btn-large" style="background:var(--primary);color:white;" onclick="showMenu()">戻る</button></div>
@@ -221,7 +252,7 @@
 <script>
 // --- 商品データ (全198商品) ---
 const rawData = [
-    ["お通し","お通し",300],["もつ串","美唄焼鳥",150],["鳥精肉","美唄焼鳥",170],["手羽焼き（2本）","焼き物",400],["国産豚ロースステーキ","焼き物",600],["ハーフ豚ステーキ","焼き物",700],["ハーフ豚炙りチャーシュー","焼き物",600],["自家製つくねコロコロ焼き","焼き物",400],["ささみ串焼き（数量限定）","焼き物",250],["鴨肉の網焼き","焼き物",600],["ピリ辛ソーセージ（2本）","焼き物",400],["ラムソーセージ（2本）","焼き物",500],["うずらの玉子（1串）","焼き物",150],["肉厚しいたけ（2個）","焼き物",300],["プチトマト（1串）","焼き物",150],["ズッキリ（1串）","焼き物",150],["長なす串焼き（1串）","焼き物",300],["軟白ねぎ（1串）","焼き物",300],["ししとう（2串）","焼き物",300],["にんにくカップ焼き","焼き物",500],["焼きじゃがバター","焼き物",500],["いももちバター","焼き物",400],["ささみ串（塩こうじ）","焼き物",300],["国産豚ロース（塩）","焼き物",750],["鳥もつ煮込み","一品料理",400],["特製一口ザンギ","一品料理",550],["手羽ザンギ","一品料理",550],["竜田揚げ","一品料理",550],["ササミカツ","一品料理",600],["国産豚のロースカツ","一品料理",700],["コーンバター","一品料理",500],["生ハムねぎ包み","一品料理",650],["塩キャベツ","一品料理",350],["漬物","一品料理",350],["枝豆","一品料理",350],["冷奴","一品料理",400],["チャンジャ","一品料理",400],["イカ塩辛","一品料理",400],["たこわさび","一品料理",400],["松前漬け","一品料理",400],["クジラベーコン","一品料理",700],["パンチェッタ芋熱湯風呂","オリジナル",700],["パンチェッタコーン熱湯風呂","オリジナル",700],["チャンジャチーズタパス","オリジナル",700],["ハーブ豚アヒージョ","オリジナル",700],["砂肝アヒージョ","オリジナル",700],["タコアヒージョ","オリジナル",700],["ソーセージアヒージョ","オリジナル",700],["バンズ","オリジナル",100],["まぐろ刺し","刺身",700],["とろしめさば","刺身",600],["たこ頭刺し","刺身",600],["馬刺し赤身","刺身",800],["馬肉ユッケ","刺身",850],["エイヒレ","干物",400],["こまい","干物",600],["ししゃも","干物",500],["鮭とば","干物",500],["するめいか","干物",450],["たらこ焼き","干物",450],["鳥もつ鍋","鍋物",1400],["辛鳥もつ鍋","鍋物",1500],["鴨鍋","鍋物",1300],["湯どうふ","鍋物",800],["単品野菜","鍋物",500],["単品もつ","鍋物",800],["雑炊セット","鍋物",350],["単品そば","鍋物",300],["冷しトマト","サラダ",400],["オリジナルサラダ","サラダ",600],["ツナサラダ","サラダ",700],["生ハムサラダ","サラダ",800],["もずく酢","酢の物",350],["ピクルス","酢の物",550],["りめし","ご飯物",400],["やきとり丼ぶり","ご飯物",650],["もつ煮込み丼ぶり","ご飯物",650],["炙りチャーシュー丼ぶり","ご飯物",700],["三船特製オムライス","ご飯物",700],["山わさび丼ぶり","ご飯物",400],["ライス小","ご飯物",200],["ライス大","ご飯物",300],["鳥がらそば","麺類",450],["特製ラーメン(正油)","麺類",750],["特製チャーシューメン","麺類",900],["バターコーンラーメン","麺類",900],["もつそば温","麺類",600],["もつせいろ冷","麺類",600],["鳥せいろ冷","麺類",600],["かしわそば温","麺類",600],["冷むぎ","麺類",500],["スープ","麺類",300],["ドライ 小","ビール",500],["ドライ 中","ビール",600],["ドライ 大","ビール",700],["マルエフ中瓶","ビール",700],["ラガー中瓶","ビール",700],["ホッピーセット","ビール",600],["ホッピーの焼酎","ビール",300],["ドライゼロ","ビール",500],["ソラチエース","ビール",800],["レモンサワー","サワー",500],["ライムサワー","サワー",500],["ウーロンハイ","サワー",500],["生レモンサワー","サワー",600],["赤ワイン","ワイン",500],["白ワイン","ワイン",500],["焼酎水割/ロック","焼酎",500],["㐂六","焼酎",700],["山ねこ","焼酎",700],["中々","焼酎",700],["黒霧島","焼酎",700],["よろしく千萬","焼酎",700],["金黒","焼酎",700],["カシスソーダ","カクテル",550],["ジントニック","カクテル",550],["ウーロン茶","ソフトドリンク",350],["ほうじ茶","ソフトドリンク",350],["コーラ","ソフトドリンク",350],["カルピス","ソフトドリンク",350],["緑茶","ソフトドリンク",350],["二世古","日本酒",850],["繁桝","日本酒",900],["福司","日本酒",850],["まる田","日本酒",900],["男山","日本酒",900],["獺祭","日本酒",900],["十一州","日本酒",900],["久保田","日本酒",850],["一ノ蔵","日本酒",800],["ばくれん","日本酒",800],["くどき上手","日本酒",900],["北の勝","日本酒",800],["越後で候","日本酒",900],["李白","日本酒",850],["常山","日本酒",900],["開運","日本酒",900],["大和しずく","日本酒",900],["越乃寒梅","日本酒",800],["八海山","日本酒",800],["もつ串持帰","テイクアウト",150],["精肉持帰","テイクアウト",170],["もつ煮持帰","テイクアウト",300],["飲み放題男","飲み放題",2280],["飲み放題女","飲み放題",1980],["もつ串10本","無人",1000],["精肉10本","無人",1000],["MIX10本","無人",1000],["弁当A","無人",1000],["弁当B","無人",1000]
+    ["お通し","お通し",300],["もつ串","美唄焼鳥",150],["鳥精肉","美唄焼鳥",170],["手羽焼き（2本）","焼き物",400],["国産豚ロースステーキ","焼き物",600],["ハーフ豚ステーキ","焼き物",700],["ハーフ豚炙りチャーシュー","焼き物",600],["自家製つくねコロコロ焼き","焼き物",400],["ささみ串焼き（数量限定）","焼き物",250],["鴨肉の網焼き","焼き物",600],["ピリ辛ソーセージ（2本）","焼き物",400],["ラムソーセージ（2本）","焼き物",500],["うずらの玉子（1串）","焼き物",150],["肉厚しいたけ（2個）","焼き物",300],["プチトマト（1串）","焼き物",150],["ズッキリ（1串）","焼き物",150],["長なす串焼き（1串）","焼き物",300],["軟白ねぎ（1串）","焼き物",300],["ししとう（2串）","焼き物",300],["にんにくカップ焼き","焼き物",500],["焼きじゃがバター","焼き物",500],["焼きじゃがバター（塩辛）","焼き物",600],["いももちバター","焼き物",400],["ささみ串（塩こうじ）","焼き物",300],["国産豚ロース（塩）","焼き物",750],["鳥もつ煮込み","一品料理",400],["一口ザンギ","一品料理",550],["手羽ザンギ","一品料理",550],["竜田揚げ","一品料理",550],["ササミカツ","一品料理",600],["国産豚のロースカツ","一品料理",700],["コーンバター","一品料理",500],["生ハムねぎ包み","一品料理",650],["塩キャベツ","一品料理",350],["漬物","一品料理",350],["枝豆","一品料理",350],["冷奴","一品料理",400],["チャンジャ","一品料理",400],["イカ塩辛","一品料理",400],["たこわさび","一品料理",400],["松前漬け","一品料理",400],["クジラベーコン","一品料理",700],["パンチェッタ芋熱湯風呂","オリジナル",700],["パンチェッタコーン熱湯風呂","オリジナル",700],["チャンジャチーズタパス","オリジナル",700],["ハーブ豚チャーシューアヒージョ","オリジナル",700],["砂肝アヒージョ","オリジナル",700],["タコアヒージョ","オリジナル",700],["ソーセージアヒージョ","オリジナル",700],["バンズ","オリジナル",100],["まぐろ刺し","刺身",700],["とろしめさば","刺身",600],["たこ頭刺し","刺身",600],["馬刺し赤身","刺身",800],["馬肉ユッケ","刺身",850],["エイヒレ","干物",400],["こまい一夜干し","干物",600],["ししゃも","干物",500],["鮭とば","干物",500],["するめいか","干物",450],["たらこ焼き","干物",450],["鳥もつ鍋","鍋物",1400],["辛鳥もつ鍋","鍋物",1500],["鴨鍋","鍋物",1300],["湯どうふ","鍋物",800],["単品野菜","鍋物",500],["単品もつ","鍋物",800],["雑炊セット","鍋物",350],["単品そば","鍋物",300],["冷しトマト","サラダ",400],["オリジナルサラダ","サラダ",600],["ツナサラダ","サラダ",700],["生ハムサラダ","サラダ",800],["もずく酢","酢の物",350],["ピクルス","酢の物",550],["りめし","ご飯物",400],["やきとり丼ぶり","ご飯物",650],["もつ煮込み丼ぶり","ご飯物",650],["炙りチャーシュー丼ぶり","ご飯物",700],["三船特製オムライス","ご飯物",700],["山わさび丼ぶり","ご飯物",400],["ライス小","ご飯物",200],["ライス大","ご飯物",300],["鳥がらそば","麺類",450],["特製ラーメン(正油)","麺類",750],["特製チャーシューメン","麺類",900],["バターコーンラーメン","麺類",900],["もつそば温","麺類",600],["もつせいろ冷","麺類",600],["鳥せいろ冷","麺類",600],["かしわそば温","麺類",600],["冷むぎ","麺類",500],["スープ","麺類",300],["ドライ 中","ビール",600],["ドライ 大","ビール",700],["マルエフ中瓶","ビール",700],["ラガー中瓶","ビール",700],["ホッピーセット","ビール",600],["ホッピーの焼酎","ビール",300],["ドライゼロ","ビール",500],["レモンサワー","サワー",500],["ライムサワー","サワー",500],["ウーロンハイ","サワー",500],["生レモンサワー","サワー",600],["赤ワイン","ワイン",500],["白ワイン","ワイン",500],["焼酎水割/ロック","焼酎",500],["㐂六","焼酎",700],["山ねこ","焼酎",700],["中々","焼酎",700],["黒霧島","焼酎",700],["よろしく千萬","焼酎",700],["金黒","焼酎",700],["カシスソーダ","カクテル",550],["ジントニック","カクテル",550],["モスコミュール","カクテル",550],["ウーロン茶","ソフトドリンク",350],["ほうじ茶","ソフトドリンク",350],["コーラ","ソフトドリンク",350],["カルピス","ソフトドリンク",350],["緑茶","ソフトドリンク",350],["二世古","日本酒",850],["繁桝","日本酒",900],["福司","日本酒",850],["まる田","日本酒",900],["男山","日本酒",900],["獺祭","日本酒",900],["十一州","日本酒",900],["久保田","日本酒",850],["一ノ蔵","日本酒",800],["ばくれん","日本酒",800],["くどき上手","日本酒",900],["北の勝","日本酒",800],["越後で候","日本酒",900],["李白","日本酒",850],["常山","日本酒",900],["開運","日本酒",900],["大和しずく","日本酒",900],["越乃寒梅","日本酒",800],["八海山","日本酒",800],["もつ串持帰","テイクアウト",150],["精肉持帰","テイクアウト",170],["もつ煮持帰","テイクアウト",300],["飲み放題男","飲み放題",2280],["飲み放題女","飲み放題",1980],["もつ串10本","無人",1000],["精肉10本","無人",1000],["MIX10本","無人",1000],["弁当A","無人",1000],["弁当B","無人",1000]
 ];
 
 const menuData = []; rawData.forEach(r => { let c = menuData.find(x => x.cat === r[1]); if(!c) { c = {cat: r[1], items: []}; menuData.push(c); } c.items.push({n: r[0], p: r[2]}); });
@@ -239,13 +270,17 @@ function onTableClick(tId) { currentTable = tId; if(localStorage.getItem('histor
 
 async function showAdmin() {
     hideAll(); document.getElementById('view-admin').style.display = 'flex';
-    const list = document.getElementById('sales-list'); list.innerHTML = '<p style="text-align:center; padding:50px;">読込中...</p>';
+    const list = document.getElementById('sales-list'); list.innerHTML = '<p style="text-align:center; padding:50px;">データ読込中...</p>';
     try {
         const sales = await window.getSalesData('day'); let total = 0, guests = 0;
         list.innerHTML = sales.map(s => {
             total += s.total; guests += s.guests;
-            return `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.checkout}</span><span class="sale-table-badge">${s.tableId}番席</span></div><div class="sale-detail-info">客数: ${s.guests}名 / 入店: ${s.checkin}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.total.toLocaleString()}</span><button class="btn-del-sale" onclick="deleteSaleDoc('${s.id}')">削除</button></div></div>`;
-        }).join('') || '<p style="text-align:center; padding:50px;">データなし</p>';
+            return `<div class="sale-card">
+                <div class="sale-time-row"><span class="sale-time">${s.checkout}</span><span class="sale-table-badge">${s.tableId}番席</span></div>
+                <div class="sale-detail-info">客数: ${s.guests}名 / 入店: ${s.checkin}</div>
+                <div class="sale-total-line"><span class="sale-price-big">¥${s.total.toLocaleString()}</span><button class="btn-del-sale" onclick="deleteSaleDoc('${s.id}')">削除</button></div>
+            </div>`;
+        }).join('') || '<p style="text-align:center; padding:50px;">本日データなし</p>';
         document.getElementById('sum-total').innerText = total.toLocaleString();
         document.getElementById('sum-guests').innerText = guests;
         document.getElementById('sum-count').innerText = sales.length;
@@ -259,7 +294,7 @@ async function printReport(mode) {
     r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n${mode==='day'?'【日計報告】':'【月計報告】'}\n`, width:2, height:2});
     r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `--------------------------------\n件数: ${sales.length} 件 / 客数: ${guests} 名\n--------------------------------\n税別計: ¥${sub.toLocaleString()}\n消費税: ¥${tx.toLocaleString()}\n税込合計: ¥${total.toLocaleString()}\n--------------------------------\n`});
     r += b.createCutPaperElement({type: 'partial'});
-    const t = new StarWebPrintTrader({url: PRINTER_URL}); t.sendMessage({request: r}); alert("印刷しました。");
+    const t = new StarWebPrintTrader({url: PRINTER_URL}); t.sendMessage({request: r}); alert("印刷命令完了");
 }
 
 function showGuestInput() { hideAll(); tempGuestCount = "0"; document.getElementById('guest-table-name').innerText = currentTable + "番席"; document.getElementById('guest-count-val').innerText = tempGuestCount; document.getElementById('view-guest').style.display = 'flex'; const k = document.getElementById('guest-keypad'); k.innerHTML = [1,2,3,4,5,6,7,8,9,'C',0,'決定'].map(num => { let s = num === '決定' ? 'background:var(--accent); color:#fff;' : ''; let f = num === '決定' ? 'confirmGuestCount()' : (num === 'C' ? 'clearGuestNum()' : `inputGuestNum(${num})`); return `<button class="key-btn" style="${s}" onclick="${f}">${num}</button>`; }).join(''); }
@@ -288,10 +323,11 @@ function renderReceiptSample() {
     const h = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const g = localStorage.getItem('guests_'+currentTable) || 0; const c = localStorage.getItem('checkin_'+currentTable) || "--:--"; let sub = 0, tx = 0;
     let t = `<div class="text-center text-bold">美唄焼鳥三船 東札幌店</div><div class="text-center">札幌市白石区東札幌2条3丁目9-2</div><div class="receipt-hr"></div><div>日時: ${new Date().toLocaleString()}</div><div>席: ${currentTable} 客: ${g}名 入店: ${c}</div><div class="receipt-hr"></div>`;
     h.forEach(i => { const l = i.price*i.qty; sub += l; tx += Math.floor(l * i.rate); t += `<div>${i.name}</div><div style="display:flex; justify-content:space-between;"><span>&nbsp;${i.qty}点 x ¥${i.price.toLocaleString()}</span><span>¥${l.toLocaleString()}</span></div>`; });
-    t += `<div class="receipt-hr"></div><div class="text-right">税別合計: ¥${sub.toLocaleString()} / 消費税: ¥${tx.toLocaleString()}</div><div class="text-right text-bold" style="font-size:14px;">税込合計: ¥${(sub+tx).toLocaleString()}</div><div class="receipt-hr"></div><div class="text-center">[登録番号] T4430001061003</div>`;
+    t += `<div class="receipt-hr"></div><div class="text-right">税別合計: ¥${sub.toLocaleString()}</div><div class="text-right">消費税: ¥${tx.toLocaleString()}</div><div class="text-right text-bold" style="font-size:14px;">税込合計: ¥${(sub+tx).toLocaleString()}</div><div class="receipt-hr"></div><div class="text-center">[登録番号] T4430001061003</div>`;
     document.getElementById('sample-receipt-content').innerHTML = t;
 }
 function closeReceiptChoice() { document.getElementById('overlay-receipt').style.display = 'none'; }
+
 async function testSend() { if(currentCart.length === 0) return alert("空です"); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart))); localStorage.removeItem('cart_'+currentTable); currentCart = []; if(window.cloudSync) await window.cloudSync(currentTable); hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter(); }
 async function testPay() { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable); showIndex(); }
 
@@ -313,7 +349,7 @@ async function pay(doPrint) {
         let sub = 0, tx = 0; r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n`, width: 2, height: 2}); r += b.createTextElement({data: `札幌市白石区東札幌2条3丁目9-2\n\n`}); r += b.createAlignmentElement({position: 'left'});
         r += b.createTextElement({data: `日時: ${new Date().toLocaleString()}\n席: ${currentTable} 客: ${g}名 入店: ${c}\n--------------------------------\n`});
         hist.forEach(i => { const l = i.price*i.qty; sub += l; tx += Math.floor(l * i.rate); r += b.createTextElement({data: `${i.name}\n  ${i.qty}点 x ¥${i.price}    ¥${l}\n`}); });
-        r += b.createTextElement({data: `--------------------------------\n`}); r += b.createAlignmentElement({position: 'right'}); r += b.createTextElement({data: `税別計: ¥${sub.toLocaleString()} / 消費税: ¥${tx.toLocaleString()}\n合計: ¥${(sub + tx).toLocaleString()}\n`, width: 2, height: 2});
+        r += b.createTextElement({data: `--------------------------------\n`}); r += b.createAlignmentElement({position: 'right'}); r += b.createTextElement({data: `税別計: ¥${sub.toLocaleString()} / 消費税: ¥${tx.toLocaleString()}\n売上合計: ¥${(sub + tx).toLocaleString()}\n`, width: 2, height: 2});
         r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `\n[登録番号] T4430001061003\n株式会社Stag Beetle Corporation\n\n`}); r += b.createCutPaperElement({type: 'partial'});
     }
     const t = new StarWebPrintTrader({url: PRINTER_URL}); t.onReceive = async () => { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable); showIndex(); }; t.sendMessage({request: r});

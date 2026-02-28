@@ -1,791 +1,322 @@
 <!DOCTYPE html>
-
 <html lang="ja">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-
-    <title>三船 リアルタイムPOS</title>
-
-    <script src="StarWebPrintBuilder.js"></script>
-
-    <script src="StarWebPrintTrader.js"></script>
-
-    <style>
-
-        :root { --primary: #f39c12; --secondary: #fbb03b; --bg: #f8f8f8; --text: #333; --accent: #2ecc71; --gray: #999; --danger: #e74c3c; --info: #3498db; --dark: #444; }
-
-        * { touch-action: manipulation; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-
-        body { font-family: sans-serif; margin: 0; background: var(--bg); color: var(--text); -webkit-user-select: none; overflow: hidden; height: 100vh; height: 100dvh; }
-
-        header { background: #fff; padding: 0 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; font-weight: bold; height: 55px; flex-shrink: 0; }
-
-        .header-left { display: flex; align-items: center; gap: 10px; }
-
-        .back-btn { text-decoration: none; color: var(--text); font-size: 26px; cursor: pointer; padding: 10px 5px; }
-
-        .reload-btn { font-size: 28px; cursor: pointer; padding: 10px; color: var(--primary); font-weight: bold; }
-
-        .admin-btn { font-size: 13px; cursor: pointer; padding: 8px 15px; border: 1px solid var(--primary); border-radius: 25px; color: var(--primary); background: #fff; white-space: nowrap; }
-
-        .view { display: none; height: 100vh; height: 100dvh; width: 100vw; flex-direction: column; position: absolute; top: 0; left: 0; background: var(--bg); }
-
-        .view.active { display: flex; }
-
-        .grid-tables { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: min-content; gap: 10px; padding: 15px; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
-
-        .table-btn { background: #fff; border: 2px solid var(--accent); padding: 15px 5px; text-align: center; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 95px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-
-        .table-btn.occupied { background: #e8f5e9; border-color: #27ae60; }
-
-        .price-badge { display: block; font-size: 11px; color: #e67e22; margin-top: 5px; font-weight: bold; }
-
-        .login-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; background: #fff; }
-
-        .login-title { font-size: 24px; font-weight: bold; margin-bottom: 40px; color: var(--dark); }
-
-        .login-input { width: 100%; max-width: 450px; padding: 25px; margin-bottom: 25px; border: 3px solid #ddd; border-radius: 18px; font-size: 28px; background: #fafafa; -webkit-appearance: none; }
-
-        .guest-input-container { text-align: center; padding: 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; }
-
-        .guest-num-display { font-size: 60px; font-weight: bold; margin-bottom: 20px; color: var(--primary); background: #eee; border-radius: 15px; padding: 15px; width: 100%; max-width: 400px; margin-left: auto; margin-right: auto; }
-
-        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; max-width: 450px; margin: 0 auto; }
-
-        .key-btn { background: #fff; border: 1px solid #ddd; padding: 25px 0; font-size: 32px; font-weight: bold; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; }
-
-        .menu-container { display: flex; flex: 1; overflow: hidden; }
-
-        .sidebar { width: 105px; background: #f0f0f0; overflow-y: auto; border-right: 1px solid #ddd; flex-shrink: 0; box-sizing: border-box; padding-bottom: 150px !important; }
-
-        .cat { padding: 20px 8px; font-size: 13px; text-align: center; border-bottom: 1px solid #ddd; cursor: pointer; color: #555; line-height: 1.4; }
-
-        .cat.active { background: #fff; color: var(--primary); font-weight: bold; border-left: 6px solid var(--primary); }
-
-        .item-grid { flex: 1; overflow-y: auto; padding: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; align-content: start; background: #fff; padding-bottom: 150px !important; }
-
-        .item-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-height: 170px; }
-
-        .item-name { font-weight: bold; font-size: 14px; height: 2.8em; overflow: hidden; line-height: 1.4; margin-bottom: 5px; }
-
-        .item-price { color: #e67e22; font-weight: bold; font-size: 15px; margin-bottom: 8px; }
-
-        .qty-ctrl { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #f0f0f0; padding-top: 10px; }
-
-        .btn-circle { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #ccc; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; }
-
-        .btn-add { background: var(--primary); color: #fff; border: none; padding: 12px 0; border-radius: 25px; font-size: 15px; font-weight: bold; flex: 1; margin-left: 10px; box-shadow: 0 3px 6px rgba(243,156,18,0.3); }
-
-        footer { width: 100%; display: flex; flex-direction: column; z-index: 100; box-shadow: 0 -3px 10px rgba(0,0,0,0.1); flex-shrink: 0; }
-
-        .footer-history { background: var(--dark); color: #fff; padding: 10px 15px; display: flex; justify-content: space-between; font-size: 14px; cursor: pointer; }
-
-        .footer-cart { background: var(--secondary); color: #fff; padding: 18px 15px; display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; cursor: pointer; }
-
-        .list-container { flex: 1; overflow-y: auto; background: #fff; -webkit-overflow-scrolling: touch; padding-bottom: 100px; }
-
-        .list-row { display: flex; justify-content: space-between; padding: 18px; border-bottom: 1px solid #eee; align-items: center; }
-
-        .summary-area { padding: 15px 25px; text-align: right; background: #fff; border-top: 2px solid #eee; flex-shrink: 0; line-height: 1.6; font-size: 15px; }
-
-        .btn-large { width: 90%; display: block; margin: 10px auto; padding: 20px; border: none; border-radius: 40px; font-size: 20px; font-weight: bold; cursor: pointer; text-align: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-
-
-
-        /* 売上管理 */
-
-        .admin-nav { display: flex; background: #fff; border-bottom: 1px solid #ddd; }
-
-        .admin-nav-btn { flex: 1; padding: 15px; text-align: center; font-size: 14px; font-weight: bold; color: #888; cursor: pointer; border-bottom: 3px solid transparent; }
-
-        .admin-nav-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
-
-        .sale-card { background: #fff; margin: 12px; padding: 15px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); position: relative; border-left: 10px solid var(--info); }
-
-        .sale-time-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; }
-
-        .sale-time { font-size: 18px; font-weight: bold; color: var(--dark); }
-
-        .sale-table-badge { background: #eee; padding: 4px 10px; border-radius: 8px; font-size: 14px; font-weight: bold; }
-
-        .sale-detail-info { font-size: 14px; color: #666; margin-bottom: 10px; }
-
-        .sale-total-line { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
-
-        .sale-price-big { font-size: 24px; font-weight: bold; color: var(--primary); }
-
-        .btn-del-sale { background: var(--danger); color: white; border: none; padding: 8px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; }
-
-        .report-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; background: #fff; border-bottom: 1px solid #ddd; flex-shrink: 0; }
-
-        .btn-report { background: var(--info); color: #fff; border: none; padding: 15px 0; border-radius: 12px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; }
-
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: center; padding: 20px 0; }
-
-        .modal { background: #fff; width: 90%; max-width: 340px; border-radius: 20px; padding: 20px; text-align: center; position: relative; max-height: 90dvh; overflow-y: auto; }
-
-        .receipt-sample { background: #fff; padding: 15px; color: #000; font-family: monospace; text-align: left; font-size: 11px; border: 1px dashed #ccc; width: 100%; }
-
-        .receipt-hr { border-top: 1px dashed #000; margin: 5px 0; }
-
-    </style>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>三船 リアルタイムPOS</title>
+<script src="StarWebPrintBuilder.js"></script>
+<script src="StarWebPrintTrader.js"></script>
+<style>
+:root { --primary: #f39c12; --secondary: #fbb03b; --bg: #f8f8f8; --text: #333; --accent: #2ecc71; --gray: #999; --danger: #e74c3c; --info: #3498db; --dark: #444; }
+* { touch-action: manipulation; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+body { font-family: sans-serif; margin: 0; background: var(--bg); color: var(--text); -webkit-user-select: none; overflow: hidden; height: 100vh; height: 100dvh; }
+header { background: #fff; padding: 0 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; font-weight: bold; height: 55px; flex-shrink: 0; }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.back-btn { text-decoration: none; color: var(--text); font-size: 26px; cursor: pointer; padding: 10px 5px; }
+.reload-btn { font-size: 28px; cursor: pointer; padding: 10px; color: var(--primary); font-weight: bold; }
+.admin-btn { font-size: 13px; cursor: pointer; padding: 8px 15px; border: 1px solid var(--primary); border-radius: 25px; color: var(--primary); background: #fff; white-space: nowrap; }
+.view { display: none; height: 100vh; height: 100dvh; width: 100vw; flex-direction: column; position: absolute; top: 0; left: 0; background: var(--bg); }
+.view.active { display: flex; }
+.grid-tables { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: min-content; gap: 10px; padding: 15px; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+.table-btn { background: #fff; border: 2px solid var(--accent); padding: 15px 5px; text-align: center; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 95px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.table-btn.occupied { background: #e8f5e9; border-color: #27ae60; }
+.price-badge { display: block; font-size: 11px; color: #e67e22; margin-top: 5px; font-weight: bold; }
+.login-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; background: #fff; }
+.login-title { font-size: 24px; font-weight: bold; margin-bottom: 40px; color: var(--dark); }
+.login-input { width: 100%; max-width: 450px; padding: 25px; margin-bottom: 25px; border: 3px solid #ddd; border-radius: 18px; font-size: 28px; background: #fafafa; -webkit-appearance: none; }
+.guest-input-container { text-align: center; padding: 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; }
+.guest-num-display { font-size: 60px; font-weight: bold; margin-bottom: 20px; color: var(--primary); background: #eee; border-radius: 15px; padding: 15px; width: 100%; max-width: 400px; margin-left: auto; margin-right: auto; }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; max-width: 450px; margin: 0 auto; }
+.key-btn { background: #fff; border: 1px solid #ddd; padding: 25px 0; font-size: 32px; font-weight: bold; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; }
+.menu-container { display: flex; flex: 1; overflow: hidden; }
+.sidebar { width: 105px; background: #f0f0f0; overflow-y: auto; border-right: 1px solid #ddd; flex-shrink: 0; box-sizing: border-box; padding-bottom: 150px !important; }
+.cat { padding: 20px 8px; font-size: 13px; text-align: center; border-bottom: 1px solid #ddd; cursor: pointer; color: #555; line-height: 1.4; }
+.cat.active { background: #fff; color: var(--primary); font-weight: bold; border-left: 6px solid var(--primary); }
+.item-grid { flex: 1; overflow-y: auto; padding: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; align-content: start; background: #fff; padding-bottom: 150px !important; }
+.item-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-height: 170px; }
+.item-name { font-weight: bold; font-size: 14px; height: 2.8em; overflow: hidden; line-height: 1.4; margin-bottom: 5px; }
+.item-price { color: #e67e22; font-weight: bold; font-size: 15px; margin-bottom: 8px; }
+.qty-ctrl { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #f0f0f0; padding-top: 10px; }
+.btn-circle { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #ccc; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; }
+.btn-add { background: var(--primary); color: #fff; border: none; padding: 12px 0; border-radius: 25px; font-size: 15px; font-weight: bold; flex: 1; margin-left: 10px; box-shadow: 0 3px 6px rgba(243,156,18,0.3); }
+footer { width: 100%; display: flex; flex-direction: column; z-index: 100; box-shadow: 0 -3px 10px rgba(0,0,0,0.1); flex-shrink: 0; }
+.footer-history { background: var(--dark); color: #fff; padding: 10px 15px; display: flex; justify-content: space-between; font-size: 14px; cursor: pointer; }
+.footer-cart { background: var(--secondary); color: #fff; padding: 18px 15px; display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; cursor: pointer; }
+.list-container { flex: 1; overflow-y: auto; background: #fff; -webkit-overflow-scrolling: touch; padding-bottom: 100px; }
+.list-row { display: flex; justify-content: space-between; padding: 18px; border-bottom: 1px solid #eee; align-items: center; }
+.summary-area { padding: 15px 25px; text-align: right; background: #fff; border-top: 2px solid #eee; flex-shrink: 0; line-height: 1.6; font-size: 15px; }
+.btn-large { width: 90%; display: block; margin: 10px auto; padding: 20px; border: none; border-radius: 40px; font-size: 20px; font-weight: bold; cursor: pointer; text-align: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.admin-nav { display: flex; background: #fff; border-bottom: 1px solid #ddd; }
+.admin-nav-btn { flex: 1; padding: 15px; text-align: center; font-size: 14px; font-weight: bold; color: #888; cursor: pointer; border-bottom: 3px solid transparent; }
+.admin-nav-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+.sale-card { background: #fff; margin: 12px; padding: 15px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); position: relative; border-left: 10px solid var(--info); }
+.sale-time-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; }
+.sale-time { font-size: 18px; font-weight: bold; color: var(--dark); }
+.sale-table-badge { background: #eee; padding: 4px 10px; border-radius: 8px; font-size: 14px; font-weight: bold; }
+.sale-detail-info { font-size: 14px; color: #666; margin-bottom: 10px; }
+.sale-total-line { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.sale-price-big { font-size: 24px; font-weight: bold; color: var(--primary); }
+.btn-del-sale { background: var(--danger); color: white; border: none; padding: 8px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; }
+.report-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; background: #fff; border-bottom: 1px solid #ddd; flex-shrink: 0; }
+.btn-report { background: var(--info); color: #fff; border: none; padding: 22px 0; border-radius: 12px; font-weight: bold; font-size: 17px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; }
+.overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: center; padding: 20px 0; }
+.modal { background: #fff; width: 90%; max-width: 340px; border-radius: 20px; padding: 20px; text-align: center; position: relative; max-height: 90dvh; overflow-y: auto; }
+.receipt-sample { background: #fff; padding: 15px; color: #000; font-family: monospace; text-align: left; font-size: 11px; border: 1px dashed #ccc; width: 100%; }
+.receipt-hr { border-top: 1px dashed #000; margin: 5px 0; }
+</style>
 </head>
-
 <body>
 
-
-
 <script type="module">
-
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-
-    import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc, query, orderBy, getDocs, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-
-
-    const firebaseConfig = {
-
-        apiKey: "AIzaSyDscuD0S3D66lcamtG4T26WLfZH8rjOy28",
-
-        authDomain: "mifune-ap2.firebaseapp.com",
-
-        projectId: "mifune-ap2",
-
-        storageBucket: "mifune-ap2.firebasestorage.app",
-
-        messagingSenderId: "25505732783",
-
-        appId: "1:25505732783:web:47278f159ad7a26f279c5a",
-
-        measurementId: "G-7F8BM4SBGR"
-
-    };
-
-
-
-    const app = initializeApp(firebaseConfig);
-
-    const db = getFirestore(app);
-
-    const auth = getAuth(app);
-
-
-
-    window.currentUser = null;
-
-    window.isEditing = false;
-
-
-
-    onAuthStateChanged(auth, (user) => {
-
-        window.currentUser = user;
-
-        const btnLabel = document.getElementById('admin-btn-label');
-
-        if(user) {
-
-            btnLabel.innerText = "売上管理(店主)";
-
-            btnLabel.style.background = "#e8f5e9";
-
-            if(document.getElementById('view-login').style.display !== 'none') showAdmin('day');
-
-        } else {
-
-            btnLabel.innerText = "売上管理";
-
-            btnLabel.style.background = "#fff";
-
-        }
-
-    });
-
-
-
-    window.loginOwner = async (email, pass) => {
-
-        try {
-
-            await signInWithEmailAndPassword(auth, email, pass);
-
-            alert("ログイン成功");
-
-            showAdmin('day');
-
-        } catch(e) { alert("ログイン失敗"); }
-
-    };
-
-
-
-    window.logoutOwner = () => { signOut(auth); alert("ログアウト完了"); showIndex(); };
-
-
-
-    onSnapshot(collection(db, "tables"), (snapshot) => {
-
-        if(window.isEditing) return;
-
-        const tablesList = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
-
-        const cloudIds = snapshot.docs.map(d => d.id);
-
-        tablesList.forEach(tId => {
-
-            if(!cloudIds.includes(tId)) {
-
-                localStorage.removeItem('history_'+tId); localStorage.removeItem('guests_'+tId); localStorage.removeItem('checkin_'+tId);
-
-            }
-
-        });
-
-        snapshot.forEach((doc) => {
-
-            const tId = doc.id; const data = doc.data();
-
-            localStorage.setItem('history_'+tId, JSON.stringify(data.history || []));
-
-            localStorage.setItem('guests_'+tId, data.guests || 0);
-
-            localStorage.setItem('checkin_'+tId, data.checkin || "--:--");
-
-        });
-
-        renderIndex(); updateFooter();
-
-    });
-
-
-
-    window.cloudSync = async (tableId) => {
-
-        await setDoc(doc(db, "tables", tableId), {
-
-            history: JSON.parse(localStorage.getItem('history_' + tableId) || '[]'),
-
-            guests: parseInt(localStorage.getItem('guests_' + tableId)) || 0,
-
-            checkin: localStorage.getItem('checkin_' + tableId) || "--:--",
-
-            updatedAt: Timestamp.now()
-
-        });
-
-    };
-
-
-
-    window.saveSaleToCloud = async (tableId) => {
-
-        const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
-
-        if(hist.length === 0) return;
-
-        const guests = parseInt(localStorage.getItem('guests_' + tableId)) || 0;
-
-        const checkin = localStorage.getItem('checkin_' + tableId) || "--:--";
-
-        let subtotal = 0, tax = 0;
-
-        hist.forEach(i => { subtotal += i.price * i.qty; tax += Math.floor(i.price * i.qty * i.rate); });
-
-
-
-        await addDoc(collection(db, "sales"), {
-
-            tableId: tableId, guests: guests, checkin: checkin,
-
-            checkout: new Date().getHours().toString().padStart(2, '0') + ":" + new Date().getMinutes().toString().padStart(2, '0'),
-
-            items: hist, subtotal: subtotal, tax: tax, total: subtotal + tax, timestamp: Timestamp.now()
-
-        });
-
-        await deleteDoc(doc(db, "tables", tableId));
-
-    };
-
-
-
-    window.getSalesData = async (mode) => {
-
-        const now = new Date(); let start;
-
-        if (mode === 'day') start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-        else if (mode === 'dow') start = new Date(now.getFullYear(), now.getMonth(), 1);
-
-        else if (mode === 'month') start = new Date(now.getFullYear(), 0, 1);
-
-        const q = query(collection(db, "sales"), where("timestamp", ">=", Timestamp.fromDate(start)), orderBy("timestamp", "desc"));
-
-        const snap = await getDocs(q);
-
-        let res = []; snap.forEach(d => { let data = d.data(); data.id = d.id; res.push(data); });
-
-        return res;
-
-    };
-
-    window.deleteSaleDoc = async (id) => { if(confirm("消去しますか？")) { await deleteDoc(doc(db, "sales", id)); showAdmin('day'); } };
-
-    window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tableId)); };
-
-</script>
-
-
-
-<div id="view-index" class="view active">
-
-    <header>
-
-        <div class="admin-btn" id="admin-btn-label" onclick="checkAdminAuth()">売上管理</div>
-
-        <span>三船 席選択</span>
-
-        <div class="reload-btn" onclick="location.reload()">↻</div>
-
-    </header>
-
-    <div class="grid-tables" id="table-grid"></div>
-
-</div>
-
-
-
-<div id="view-login" class="view">
-
-    <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>認証</span></div></header>
-
-    <div class="login-container">
-
-        <div class="login-title">店主ログイン</div>
-
-        <input type="email" id="login-email" class="login-input" placeholder="メールアドレス">
-
-        <input type="password" id="login-pass" class="login-input" placeholder="パスワード">
-
-        <button class="btn-large" style="background:var(--primary); color:white; margin-top:20px;" onclick="handleLogin()">ログイン</button>
-
-    </div>
-
-</div>
-
-
-
-<div id="view-admin" class="view">
-
-    <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>売上管理</span></div><div style="font-size:12px; color:var(--danger);" onclick="logoutOwner()">終了</div></header>
-
-    <div class="admin-nav">
-
-        <div id="nav-day" class="admin-nav-btn active" onclick="showAdmin('day')">本日</div>
-
-        <div id="nav-dow" class="admin-nav-btn" onclick="showAdmin('dow')">曜日別</div>
-
-        <div id="nav-month" class="admin-nav-btn" onclick="showAdmin('month')">月別</div>
-
-    </div>
-
-    <div id="admin-summary-area" style="padding:15px; background:var(--dark); color:#fff; display:flex; justify-content:space-around; text-align:center; font-size:13px;">
-
-        <div>件数<br><span id="sum-count" style="font-size:20px; font-weight:bold;">0</span></div>
-
-        <div>客数<br><span id="sum-guests" style="font-size:20px; font-weight:bold;">0</span></div>
-
-        <div>合計<br>¥<span id="sum-total" style="font-size:20px; font-weight:bold;">0</span></div>
-
-    </div>
-
-    <div class="report-btns">
-
-        <button class="btn-report" onclick="printReport('day')">本日分 印刷</button>
-
-        <button class="btn-report" onclick="printReport('month')" style="background:var(--accent);">今月累計 印刷</button>
-
-    </div>
-
-    <div class="list-container" id="sales-list" style="background:#f4f4f4; padding:5px 0;"></div>
-
-</div>
-
-
-
-<div id="view-guest" class="view"><header><span class="back-btn" onclick="showIndex()">＜</span>客数入力</header><div class="guest-input-container"><h2 id="guest-table-name"></h2><div class="guest-num-display"><span id="guest-count-val">0</span> 名</div><div class="keypad" id="guest-keypad"></div></div></div>
-
-<div id="view-menu" class="view">
-
-    <header><span class="back-btn" onclick="showIndex()">×</span><span id="display-table-id"></span>番席 (<span id="display-guest-count"></span>名)<span style="margin-left:auto; font-size:11px; color:#666;">入店: <span id="display-checkin-time"></span></span></header>
-
-    <div class="menu-container"><div class="sidebar" id="side-cats"></div><div class="item-grid" id="display-items"></div></div>
-
-    <footer>
-
-        <div class="footer-history" onclick="showOrderHistory()"><span>注文済合計</span><span id="display-current-total">¥0</span></div>
-
-        <div class="footer-cart" onclick="showCart()"><div>🛒 <span id="cart-count">0</span>点</div><div>注文を確認 ＞</div></div>
-
-    </footer>
-
-</div>
-
-
-
-<div id="view-cart" class="view"><header><span class="back-btn" onclick="exitEditing()">＜</span>カート確認</header><div class="list-container" id="cart-items-list"></div><div style="background:#fff; border-top:1px solid #eee; padding-bottom:10px;"><button class="btn-large" style="background:var(--info); color:white;" onclick="testSend()">送信(同期のみ)</button><button class="btn-large" style="background:var(--primary);color:white;" onclick="sendToKitchen()">本番送信</button></div></div>
-
-<div id="view-history" class="view"><header><span class="back-btn" onclick="exitEditing()">＜</span>修正</header><div class="list-container" id="history-items-list"></div><div class="summary-area" id="history-summary"></div><div style="background:#fff; border-top:1px solid #ddd; padding-bottom:10px;"><button class="btn-large" style="background:var(--accent); color:white;" onclick="confirmHistoryChange()">保存して同期</button><button class="btn-large" style="background:var(--secondary); color:white;" onclick="showCheckout()">お会計確定へ</button></div></div>
-
-<div id="view-checkout" class="view"><header><span class="back-btn" onclick="showOrderHistory()">＜</span>会計確定</header><div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;"><div style="padding:30px 20px; background:#fff; border-radius:15px; text-align:center; box-shadow:0 4px 10px rgba(0,0,0,0.1); width:85%;"><div id="checkout-final-total" style="font-size:40px; font-weight:bold; color:var(--primary);">¥0</div><div id="checkout-final-info" style="color:#666; font-size:12px;"></div></div></div><button class="btn-large" style="background:var(--info); color:white;" onclick="testPay()">【テスト】会計完了</button><button class="btn-large" style="background:var(--accent);color:white;" onclick="openReceiptChoice()">本番会計</button></div>
-
-<div id="overlay-receipt" class="overlay"><div class="modal"><div id="receipt-preview-area" style="display:none;"><div class="modal-title">印刷プレビュー</div><div id="sample-receipt-content" class="receipt-sample"></div></div><div class="modal-title" id="receipt-modal-main-title">印刷しますか？</div><button class="btn-large" style="background:var(--primary); color:white;" onclick="pay(true)">印刷して完了</button><button class="btn-large" style="background:var(--gray); color:white;" onclick="pay(false)">印刷せずに完了</button><div style="margin-top:15px; color:var(--info); font-size:12px; cursor:pointer;" onclick="closeReceiptChoice()">キャンセル</div></div></div>
-
-<div id="view-success" class="view" style="text-align:center; justify-content:center;"><h2>送信完了</h2><button class="btn-large" style="background:var(--primary);color:white;" onclick="showMenu()">戻る</button></div>
-
-
-
-<script>
-
-// --- 商品データ (CSVの全198項目 / 「お通し」を「全メニュー」に変更) ---
-
-const rawData = [["お通し", "全メニュー", 300], ["もつ串", "美唄焼鳥", 150], ["鳥精肉", "美唄焼鳥", 170], ["手羽焼き（2本）", "焼き物", 400], ["国産豚のロース網焼きステーキ", "焼き物", 600], ["ハーフ豚の網焼きステーキ（1枚）", "焼き物", 700], ["ハーフ豚の炙りチャーシュー", "焼き物", 600], ["自家製つくねのコロコロ焼き（4玉）", "焼き物", 400], ["ささみ串焼き（数量限定 1串）", "焼き物", 250], ["鴨肉の網焼き", "焼き物", 600], ["ピリ辛ソーセージ（2本）", "焼き物", 400], ["ラムソーセージ（2本）", "焼き物", 500], ["うずらの玉子（1串）", "焼き物", 150], ["肉厚しいたけ（2個）", "焼き物", 300], ["プチトマト（1串）", "焼き物", 150], ["ズッキーニ（1串）", "焼き物", 150], ["長なす串焼き（1串）", "焼き物", 300], ["軟白ねぎ（1串）", "焼き物", 300], ["ししとう（2串）", "焼き物", 300], ["オリーブオイルにんにくカップ焼き", "焼き物", 500], ["焼きじゃがバター（2個）", "焼き物", 500], ["焼きじゃがバター（塩辛付き）（2個）", "焼き物", 600], ["いももちバター（4個）", "焼き物", 400], ["ささみ串（自家製塩こうじ漬け）", "焼き物", 300], ["国産豚のロース網焼きステーキ（自家製塩こうじ漬け）", "焼き物", 750], ["鳥もつ煮込み", "一品料理", 400], ["特製一口ザンギ", "一品料理", 550], ["手羽ザンギ(3本)", "一品料理", 550], ["若鶏の皮竜田揚げ(おろしポン酢付き)", "一品料理", 550], ["ササミカツ(2枚)", "一品料理", 600], ["国産豚のロースカツ", "一品料理", 700], ["コーンバター・チーズカップ", "一品料理", 500], ["生ハムの軟白ねぎ包み(岩塩付き)", "一品料理", 650], ["塩キャベツ", "一品料理", 350], ["漬物", "一品料理", 350], ["枝豆", "一品料理", 350], ["冷奴", "一品料理", 400], ["山わさび冷奴", "一品料理", 400], ["なめこおろし", "一品料理", 400], ["カニみそとうふ", "一品料理", 400], ["チャンジャ", "一品料理", 400], ["イカの塩辛", "一品料理", 400], ["たこわさび", "一品料理", 400], ["ほたてわさび", "一品料理", 400], ["数の子入り松前漬け", "一品料理", 400], ["クジラのベーコン ねぎ正油あえ", "一品料理", 700], ["自家製パンチェッタとメークインのオリーブオイル・チーズ熱湯風呂", "オリジナル", 700], ["自家製パンチェッタとコーンのオリーブオイル・チーズ熱湯風呂", "オリジナル", 700], ["チャンジャとクリームチーズのタパス(おつまみ料理)", "オリジナル", 700], ["ハーブ豚チャーシューとマッシュルームのアヒージョ", "オリジナル", 700], ["砂肝とマッシュルームのアヒージョ", "オリジナル", 700], ["タコとマッシュルームのアヒージョ", "オリジナル", 700], ["ピリ辛ソーセージとマッシュルームのアヒージョ", "オリジナル", 700], ["バンズ", "オリジナル", 100], ["まぐろ刺し(数量限定)", "刺身", 700], ["とろしめさば", "刺身", 600], ["たこ頭刺し", "刺身", 600], ["馬刺し(赤身)", "刺身", 800], ["馬肉ユッケ", "刺身", 850], ["エイヒレ", "干物", 400], ["こまい一夜干し", "干物", 600], ["ししゃも", "干物", 500], ["鮭とば", "干物", 500], ["するめいか", "干物", 450], ["たらこ焼き", "干物", 450], ["鳥もつ鍋(一人前)", "鍋物", 1400], ["辛鳥もつ鍋(一人前)", "鍋物", 1500], ["鴨鍋(一人前)", "鍋物", 1300], ["湯どうふ(一人前)", "鍋物", 800], ["【追加】単品野菜", "鍋物", 500], ["【追加】単品もつ類", "鍋物", 800], ["【追加】雑炊セット", "鍋物", 350], ["【追加】単品そば", "鍋物", 300], ["冷しトマト", "サラダ", 400], ["オリジナルサラダ", "サラダ", 600], ["ツナサラダ", "サラダ", 700], ["生ハムサラダ", "サラダ", 800], ["もずく酢", "酢の物", 350], ["ピクルスの盛り合わせ", "酢の物", 550], ["美唄名物とりめし", "ご飯物", 400], ["やきとり丼ぶり", "ご飯物", 650], ["もつ煮込み丼ぶり", "ご飯物", 650], ["炙りチャーシュー丼ぶり", "ご飯物", 700], ["三船特製オムライス", "ご飯物", 700], ["山わさび丼ぶり", "ご飯物", 400], ["ライス(小)", "ご飯物", 200], ["ライス(大)", "ご飯物", 300], ["三船名物鳥がらそば", "麺類", 450], ["三船特製ラーメン(正油味のみ)", "麺類", 750], ["三船特製チャーシューメン", "麺類", 900], ["バターコーンラーメン", "麺類", 900], ["もつそば(温)", "麺類", 600], ["もつせいろそば(冷)", "麺類", 600], ["鳥せいろそば(冷)", "麺類", 600], ["かしわそば(温)", "麺類", 600], ["冷むぎ(夏期)", "麺類", 500], ["スープ(玉子・わかめ)", "麺類", 300], ["飲み放題延長", "飲み放題", 800], ["スーパードライ 〈小〉", "ビール", 500], ["スーパードライ 〈中〉", "ビール", 600], ["スーパードライ 〈大〉", "ビール", 700], ["アサヒ マルエフ 〈中瓶〉", "ビール", 700], ["ラガー 〈中瓶〉", "ビール", 700], ["ホッピー セット〈白・黒〉", "ビール", 600], ["ホッピーの焼酎のみ", "ビール", 300], ["アサヒドライゼロ 〈中瓶〉", "ビール", 500], ["ソラチエース", "ビール", 800], ["プレーンサワー", "サワー", 500], ["レモンサワー", "サワー", 500], ["ライムサワー", "サワー", 500], ["カシスサワー", "サワー", 500], ["梅サワー", "サワー", 500], ["グレープフルーツサワー", "サワー", 500], ["ぶどうサワー", "サワー", 500], ["青りんごサワー", "サワー", 500], ["カルピスサワー", "サワー", 500], ["シークァーサーサワー", "サワー", 500], ["ウーロンハイ", "サワー", 500], ["緑茶ハイ", "サワー", 500], ["コーヒー酎ハイ", "サワー", 500], ["生レモンサワー", "サワー", 600], ["生グレープフルーツサワー", "サワー", 600], ["グラスワイン（赤）", "ワイン", 500], ["グラスワイン（白）", "ワイン", 500], ["焼酎（ロック・水割り）", "焼酎", 500], ["㐂六（きろく） 〈宮崎・芋〉", "焼酎", 700], ["山ねこ 〈宮崎・芋〉", "焼酎", 700], ["山せみ 〈宮崎・米〉", "焼酎", 700], ["山猿 〈宮崎・麦〉", "焼酎", 700], ["中々 〈宮崎・麦〉", "焼酎", 700], ["黒霧島 〈宮崎・芋〉", "焼酎", 700], ["海 〈鹿児島・芋〉", "焼酎", 700], ["くじら 〈鹿児島・芋〉", "焼酎", 700], ["よろしく千萬あるべし 〈新潟・米〉", "焼酎", 700], ["ニッカ・ザ・麦焼酎 〈福岡・麦〉", "焼酎", 700], ["金黒 〈福岡・芋〉", "焼酎", 700], ["カシスソーダ", "カクテル", 550], ["カシスウーロン", "カクテル", 550], ["カシスオレンジ", "カクテル", 550], ["カシスグレープフルーツ", "カクテル", 550], ["カンパリオレンジ", "カクテル", 550], ["カンパリソーダ", "カクテル", 550], ["カンパリトニック", "カクテル", 550], ["ジントニック", "カクテル", 550], ["ジンライム", "カクテル", 550], ["ラムコーク", "カクテル", 550], ["ワインクーラー", "カクテル", 550], ["クーニャン", "カクテル", 550], ["ファジーネーブル", "カクテル", 550], ["シャンディガフ", "カクテル", 550], ["レッドアイ", "カクテル", 550], ["ブラッディメアリー", "カクテル", 550], ["スクリュードライバー", "カクテル", 550], ["ブルドック", "カクテル", 550], ["モスコミュール", "カクテル", 550], ["ウーロン茶", "ソフトドリンク", 350], ["ほうじ茶", "ソフトドリンク", 350], ["コーラ", "ソフトドリンク", 350], ["オレンジジュース", "ソフトドリンク", 350], ["グレープフルーツジュース", "ソフトドリンク", 350], ["カルピス", "ソフトドリンク", 350], ["カルピスソーダ", "ソフトドリンク", 350], ["トマトジュース", "ソフトドリンク", 350], ["アイスコーヒー", "ソフトドリンク", 350], ["緑茶", "ソフトドリンク", 350], ["ジンジャーエール", "ソフトドリンク", 350], ["アイスクリーム（バニラ）", "デザート", 350], ["コーラフロート", "デザート", 600], ["コーヒーフロート", "デザート", 600], ["二世古（特別純米新酒しぼり）", "日本酒", 850], ["繁桝（特別純米生々）", "日本酒", 900], ["福司（純米酒）", "日本酒", 850], ["まる田（特別純米）", "日本酒", 900], ["男山（純米生酒）", "日本酒", 900], ["獺祭（純米大吟醸）", "日本酒", 900], ["十一州（吟醸しぼりたて）", "日本酒", 900], ["久保田（清酒）", "日本酒", 850], ["一ノ蔵（本醸造辛口）", "日本酒", 800], ["ばくれん（吟醸超辛口）", "日本酒", 800], ["くどき上手（純米吟醸辛口）", "日本酒", 900], ["北の勝（清酒）", "日本酒", 800], ["越後で候（しぼりたて生原酒）", "日本酒", 900], ["李白（特別純米酒）", "日本酒", 850], ["常山（とびっきり辛口）", "日本酒", 900], ["開運（無濾過純米酒）", "日本酒", 900], ["大和しずく（純米吟醸）", "日本酒", 900], ["越乃寒梅（清酒）", "日本酒", 800], ["八海山（清酒）", "日本酒", 800], ["もつ串 テイクアウト", "テイクアウト", 150], ["精肉 テイクアウト", "テイクアウト", 170], ["もつ煮込み テイクアウト", "テイクアウト", 300], ["もつ串10本", "無人", 1000], ["鳥精肉10本", "無人", 1000], ["もつ、精肉 MIX 10本", "無人", 1000], ["弁当A", "無人", 1000], ["弁当B", "無人", 1000], ["飲み放題男性90分", "飲み放題", 2280], ["飲み放題女性90分", "飲み放題", 1980]];
-
-
-
-const menuData = [];
-
-// 「全メニュー」カテゴリーを最初に作成し、全商品を突っ込む
-
-const allCat = { cat: "全メニュー", items: [] };
-
-rawData.forEach(r => {
-
-    allCat.items.push({n: r[0], p: r[2], c: r[1]}); // 全メニュー用
-
-    let c = menuData.find(x => x.cat === r[1]);
-
-    if(!c) { c = {cat: r[1], items: []}; menuData.push(c); }
-
-    c.items.push({n: r[0], p: r[2]});
-
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc, query, orderBy, getDocs, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyDscuD0S3D66lcamtG4T26WLfZH8rjOy28",
+authDomain: "mifune-ap2.firebaseapp.com",
+projectId: "mifune-ap2",
+storageBucket: "mifune-ap2.firebasestorage.app",
+messagingSenderId: "25505732783",
+appId: "1:25505732783:web:47278f159ad7a26f279c5a",
+measurementId: "G-7F8BM4SBGR"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+window.currentUser = null;
+window.isEditing = false;
+
+onAuthStateChanged(auth, (user) => {
+window.currentUser = user;
+const btnLabel = document.getElementById('admin-btn-label');
+if(user) {
+btnLabel.innerText = "売上管理(店主)";
+btnLabel.style.background = "#e8f5e9";
+if(document.getElementById('view-login').style.display !== 'none') showAdmin('day');
+} else {
+btnLabel.innerText = "売上管理";
+btnLabel.style.background = "#fff";
+}
 });
 
-menuData.unshift(allCat); // 全メニューを先頭に
+window.loginOwner = async (email, pass) => {
+try {
+await signInWithEmailAndPassword(auth, email, pass);
+alert("ログイン成功");
+showAdmin('day');
+} catch(e) { alert("ログイン失敗"); }
+};
 
+window.logoutOwner = () => { signOut(auth); alert("ログアウト完了"); showIndex(); };
 
-
-const tablesL = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
-
-let currentTable = "", currentCart = [], tempGuestCount = "0";
-
-const PRINTER_URL = 'http://192.168.1.XX/StarWebPRNT/SendMessage';
-
-const isTestMode = true;
-
-
-
-function hideAll() { document.querySelectorAll('.view').forEach(v => v.style.display = 'none'); }
-
-function renderIndex() { const g = document.getElementById('table-grid'); if(!g) return; g.innerHTML = tablesL.map(t => { const h = JSON.parse(localStorage.getItem('history_'+t) || '[]'); const total = h.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); return `<div class="table-btn ${total>0?'occupied':''}" onclick="onTableClick('${t}')"><b>${t}</b><span class="price-badge">${total>0?'¥'+total.toLocaleString():'空席'}</span></div>`; }).join(''); }
-
-function showIndex() { window.isEditing = false; hideAll(); document.getElementById('view-index').style.display = 'flex'; renderIndex(); }
-
-function checkAdminAuth() { if(window.currentUser) showAdmin('day'); else { hideAll(); document.getElementById('view-login').style.display = 'flex'; } }
-
-function handleLogin() { window.loginOwner(document.getElementById('login-email').value, document.getElementById('login-pass').value); }
-
-function onTableClick(tId) { currentTable = tId; if(localStorage.getItem('history_' + tId)) showMenu(); else showGuestInput(); }
-
-
-
-async function showAdmin(mode) {
-
-    hideAll(); document.getElementById('view-admin').style.display = 'flex';
-
-    document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
-
-    document.getElementById('nav-' + mode).classList.add('active');
-
-    const list = document.getElementById('sales-list'); list.innerHTML = '<p style="text-align:center; padding:50px;">集計中...</p>';
-
-    try {
-
-        const sales = await window.getSalesData(mode);
-
-        let total = 0, guests = 0, count = sales.length;
-
-        if (mode === 'day') {
-
-            list.innerHTML = sales.map(s => {
-
-                total += s.total; guests += s.guests;
-
-                return `<div class="sale-card">
-
-                    <div class="sale-time-row"><span class="sale-time">${s.checkout}</span><span class="sale-table-badge">${s.tableId}番</span></div>
-
-                    <div class="sale-detail-info">客: ${s.guests}名 / 入店: ${s.checkin}</div>
-
-                    <div class="sale-total-line"><span class="sale-price-big">¥${s.total.toLocaleString()}</span><button class="btn-del-sale" onclick="deleteSaleDoc('${s.id}')">削除</button></div>
-
-                </div>`;
-
-            }).join('') || '<p style="text-align:center; padding:50px;">データなし</p>';
-
-        } else if (mode === 'dow') {
-
-            const dowLabels = ['日', '月', '火', '水', '木', '金', '土'];
-
-            let stats = [0,1,2,3,4,5,6].map(i => ({ label: dowLabels[i], total: 0, count: 0, guests: 0 }));
-
-            sales.forEach(s => { const d = s.timestamp.toDate(); const dow = d.getDay(); stats[dow].total += s.total; stats[dow].count++; stats[dow].guests += s.guests; total += s.total; guests += s.guests; });
-
-            list.innerHTML = stats.map(s => `
-
-                <div class="sale-card" style="border-left-color: ${s.label === '日' ? 'red' : (s.label === '土' ? 'blue' : '#ccc')};">
-
-                    <div class="sale-time-row"><span class="sale-time">${s.label}曜日</span></div>
-
-                    <div class="sale-detail-info">件数: ${s.count} / 客数: ${s.guests}</div>
-
-                    <div class="sale-total-line"><span class="sale-price-big">¥${s.total.toLocaleString()}</span></div>
-
-                </div>`).join('');
-
-        } else if (mode === 'month') {
-
-            let mStats = Array(12).fill(0).map((_, i) => ({ label: (i+1) + '月', total: 0, count: 0, guests: 0 }));
-
-            sales.forEach(s => { const m = s.timestamp.toDate().getMonth(); mStats[m].total += s.total; mStats[m].count++; mStats[m].guests += s.guests; total += s.total; guests += s.guests; });
-
-            list.innerHTML = mStats.filter(s => s.count > 0).reverse().map(s => `
-
-                <div class="sale-card">
-
-                    <div class="sale-time-row"><span class="sale-time">${s.label}</span></div>
-
-                    <div class="sale-detail-info">件数: ${s.count} / 客数: ${s.guests}</div>
-
-                    <div class="sale-total-line"><span class="sale-price-big">¥${s.total.toLocaleString()}</span></div>
-
-                </div>`).join('');
-
-        }
-
-        document.getElementById('sum-total').innerText = total.toLocaleString();
-
-        document.getElementById('sum-guests').innerText = guests;
-
-        document.getElementById('sum-count').innerText = count;
-
-    } catch(e) { list.innerHTML = `<p style="color:red;">エラー: ${e.message}</p>`; }
-
+onSnapshot(collection(db, "tables"), (snapshot) => {
+if(window.isEditing) return;
+const tablesList = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
+const cloudIds = snapshot.docs.map(d => d.id);
+tablesList.forEach(tId => {
+if(!cloudIds.includes(tId)) {
+localStorage.removeItem('history_'+tId); localStorage.removeItem('guests_'+tId); localStorage.removeItem('checkin_'+tId);
 }
-
-
-
-async function printReport(mode) {
-
-    const sales = await window.getSalesData(mode === 'day' ? 'day' : 'dow');
-
-    if(sales.length === 0) return alert("なし");
-
-    let total = 0, guests = 0, sub = 0, tx = 0; sales.forEach(s => { total += s.total; guests += s.guests; sub += s.subtotal; tx += s.tax; });
-
-    const b = new StarWebPrintBuilder(); let r = b.createInitializationElement();
-
-    r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n報告書\n`, width:2, height:2});
-
-    r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `--------------------------------\n件数: ${sales.length} / 客数: ${guests}\n--------------------------------\n税込計: ¥${total.toLocaleString()}\n`});
-
-    r += b.createCutPaperElement({type: 'partial'});
-
-    const t = new StarWebPrintTrader({url: PRINTER_URL}); t.sendMessage({request: r});
-
-}
-
-
-
-function showGuestInput() { hideAll(); tempGuestCount = "0"; document.getElementById('guest-table-name').innerText = currentTable + "番席"; document.getElementById('guest-count-val').innerText = tempGuestCount; document.getElementById('view-guest').style.display = 'flex'; const k = document.getElementById('guest-keypad'); k.innerHTML = [1,2,3,4,5,6,7,8,9,'C',0,'決定'].map(num => { let s = num === '決定' ? 'background:var(--accent); color:#fff;' : ''; let f = num === '決定' ? 'confirmGuestCount()' : (num === 'C' ? 'clearGuestNum()' : `inputGuestNum(${num})`); return `<button class="key-btn" style="${s}" onclick="${f}">${num}</button>`; }).join(''); }
-
-function inputGuestNum(n) { if(tempGuestCount === "0") tempGuestCount = n.toString(); else if(tempGuestCount.length < 2) tempGuestCount += n.toString(); document.getElementById('guest-count-val').innerText = tempGuestCount; }
-
-function clearGuestNum() { tempGuestCount = "0"; document.getElementById('guest-count-val').innerText = tempGuestCount; }
-
-async function confirmGuestCount() { let c = parseInt(tempGuestCount); if(c < 1) return alert("人数を入力"); localStorage.setItem('guests_' + currentTable, c); const now = new Date(); localStorage.setItem('checkin_' + currentTable, now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0')); if(window.cloudSync) await window.cloudSync(currentTable); showMenu(); }
-
-
-
-function showMenu() { 
-
-    window.isEditing = false; currentCart = JSON.parse(localStorage.getItem('cart_'+currentTable) || '[]'); hideAll(); 
-
-    document.getElementById('view-menu').style.display = 'flex'; 
-
-    document.getElementById('display-table-id').innerText = currentTable;
-
-    document.getElementById('display-guest-count').innerText = localStorage.getItem('guests_' + currentTable) || "0";
-
-    document.getElementById('display-checkin-time').innerText = localStorage.getItem('checkin_' + currentTable) || "--:--";
-
-    renderSidebar(); renderItems(menuData[0]); updateFooter(); 
-
-}
-
-function renderSidebar() { const side = document.getElementById('side-cats'); side.innerHTML = menuData.map((d, idx) => `<div class="cat" onclick="changeCat(this, ${idx})">${d.cat}</div>`).join(''); side.children[0].classList.add('active'); }
-
-function changeCat(el, idx) { document.querySelectorAll('.cat').forEach(c => c.classList.remove('active')); el.classList.add('active'); renderItems(menuData[idx]); }
-
-function renderItems(category) { 
-
-    const container = document.getElementById('display-items'); 
-
-    container.innerHTML = category.items.map((item, idx) => {
-
-        // テイクアウト・無人カテゴリー、または全メニュー内のそれらの商品は8%
-
-        const rate = (category.cat === "テイクアウト" || category.cat === "無人" || item.c === "テイクアウト" || item.c === "無人") ? 0.08 : 0.10;
-
-        const taxInc = Math.floor(item.p * (1 + rate));
-
-        return `<div class="item-card"><div class="item-info"><span class="item-name">${item.n}</span><span class="item-price">¥${item.p.toLocaleString()} <small style="font-size:10px; color:#999;">(税込¥${taxInc.toLocaleString()})</small></span></div><div class="qty-ctrl"><div class="btn-circle" onclick="changeQty('q${idx}', -1)">-</div><span id="q${idx}" style="font-weight:bold; min-width:18px; text-align:center;">1</span><div class="btn-circle" onclick="changeQty('q${idx}', 1)">+</div><button class="btn-add" onclick="addToCart('${item.n}', ${item.p}, 'q${idx}', ${rate})">追加</button></div></div>`;
-
-    }).join(''); 
-
-}
-
-function changeQty(id, d) { const el = document.getElementById(id); let v = parseInt(el.innerText) + d; if(v >= 1) el.innerText = v; }
-
-function addToCart(name, price, qId, rate) { const qty = parseInt(document.getElementById(qId).innerText); const exist = currentCart.find(i => i.name === name); if(exist) exist.qty += qty; else currentCart.push({name, price, qty, rate}); localStorage.setItem('cart_'+currentTable, JSON.stringify(currentCart)); updateFooter(); document.getElementById(qId).innerText = 1; }
-
-function changeCartQty(idx, delta) { currentCart[idx].qty += delta; if(currentCart[idx].qty < 1) currentCart[idx].qty = 1; localStorage.setItem('cart_'+currentTable, JSON.stringify(currentCart)); renderCartUI(); updateFooter(); }
-
-function removeFromCart(idx) { currentCart.splice(idx, 1); localStorage.setItem('cart_'+currentTable, JSON.stringify(currentCart)); renderCartUI(); updateFooter(); }
-
-function renderCartUI() { document.getElementById('cart-items-list').innerHTML = currentCart.map((i, idx) => `<div class="list-row"><div style="flex:1;"><b>${i.name}</b><br><small>¥${i.price.toLocaleString()} x ${i.qty}</small></div><div style="display:flex; align-items:center; gap:8px;"><div class="btn-circle" onclick="changeCartQty(${idx}, -1)">-</div><span style="font-weight:bold;">${i.qty}</span><div class="btn-circle" onclick="changeCartQty(${idx}, 1)">+</div><button class="btn-del" onclick="removeFromCart(${idx})">削除</button></div></div>`).join('') || '<p style="text-align:center;padding:50px;color:#999;">カートは空です</p>'; }
-
-function showCart() { window.isEditing = true; hideAll(); document.getElementById('view-cart').style.display = 'flex'; renderCartUI(); }
-
-function changeHistoryQty(idx, delta) { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); hist[idx].qty += delta; if(hist[idx].qty <= 0) { if(!confirm("削除？")) return; hist.splice(idx, 1); } localStorage.setItem('history_'+currentTable, JSON.stringify(hist)); renderHistoryUI(); }
-
-function renderHistoryUI() { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); let sub = 0, tax = 0; document.getElementById('history-items-list').innerHTML = hist.map((i, idx) => { const lp = i.price * i.qty; const lt = Math.floor(lp * i.rate); sub += lp; tax += lt; return `<div class="list-row"><div><b>${i.name}</b><br><small>税込¥${(lp+lt).toLocaleString()}</small></div><div style="display:flex; align-items:center; gap:10px;"><div class="btn-circle" onclick="changeHistoryQty(${idx}, -1)">-</div><span style="font-weight:bold;">${i.qty}</span><div class="btn-circle" onclick="changeHistoryQty(${idx}, 1)">+</div></div></div>`; }).join('') || '<p style="text-align:center;padding:50px;">なし</p>'; document.getElementById('history-summary').innerHTML = `<div style="color:#666; font-size:13px;">入店: ${localStorage.getItem('checkin_'+currentTable)} / 客: ${localStorage.getItem('guests_'+currentTable)}名</div><div>税込計: <b style="font-size:24px; color:var(--primary);">¥${(sub + tax).toLocaleString()}</b></div>`; }
-
-async function confirmHistoryChange() { if(window.cloudSync) await window.cloudSync(currentTable); alert("同期完了"); }
-
-function exitEditing() { window.isEditing = false; showMenu(); }
-
-function showOrderHistory() { window.isEditing = true; hideAll(); document.getElementById('view-history').style.display = 'flex'; renderHistoryUI(); }
-
-function showCheckout() { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const total = hist.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); document.getElementById('checkout-final-total').innerText = "¥" + total.toLocaleString(); document.getElementById('checkout-final-info').innerText = `入店 ${localStorage.getItem('checkin_'+currentTable)} / 客 ${localStorage.getItem('guests_'+currentTable)}名`; hideAll(); document.getElementById('view-checkout').style.display = 'flex'; }
-
-function updateFooter() { document.getElementById('cart-count').innerText = currentCart.reduce((s, i) => s + i.qty, 0); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const total = hist.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); document.getElementById('display-current-total').innerText = "税込合計: ¥" + total.toLocaleString(); }
-
-function openReceiptChoice() { if (isTestMode) { document.getElementById('receipt-preview-area').style.display = 'block'; renderReceiptSample(); } document.getElementById('overlay-receipt').style.display = 'flex'; }
-
-function renderReceiptSample() {
-
-    const h = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const g = localStorage.getItem('guests_'+currentTable) || 0; const c = localStorage.getItem('checkin_'+currentTable) || "--:--"; let sub = 0, tx = 0;
-
-    let t = `<div class="text-center text-bold">美唄焼鳥三船 東札幌店</div><div class="text-center">札幌市白石区東札幌2条3丁目9-2</div><div class="receipt-hr"></div><div>日時: ${new Date().toLocaleString()}</div><div>席: ${currentTable} 客: ${g}名 入店: ${c}</div><div class="receipt-hr"></div>`;
-
-    h.forEach(i => { const l = i.price*i.qty; sub += l; tx += Math.floor(l * i.rate); t += `<div>${i.name}</div><div style="display:flex; justify-content:space-between;"><span>&nbsp;${i.qty}点 x ¥${i.price.toLocaleString()}</span><span>¥${l.toLocaleString()}</span></div>`; });
-
-    t += `<div class="receipt-hr"></div><div class="text-right text-bold">税込合計: ¥${(sub+tx).toLocaleString()}</div><div class="receipt-hr"></div><div class="text-center">[登録番号] T4430001061003</div>`;
-
-    document.getElementById('sample-receipt-content').innerHTML = t;
-
-}
-
-function closeReceiptChoice() { document.getElementById('overlay-receipt').style.display = 'none'; }
-
-
-
-async function testSend() { if(currentCart.length === 0) return alert("空です"); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart))); localStorage.removeItem('cart_'+currentTable); currentCart = []; if(window.cloudSync) await window.cloudSync(currentTable); hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter(); }
-
-async function testPay() { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable); showIndex(); }
-
-
-
-async function sendToKitchen() {
-
-    if(currentCart.length === 0) return;
-
-    const b = new StarWebPrintBuilder(); let r = ""; const c = localStorage.getItem('checkin_'+currentTable) || "--:--";
-
-    currentCart.forEach(item => {
-
-        r += b.createInitializationElement(); r += b.createAlignmentElement({position: 'left'});
-
-        const itemLine = `[${currentTable}] ${item.name} ${item.qty}\n`;
-
-        r += b.createTextElement({ data: itemLine, width: 2, height: 2 });
-
-        r += b.createTextElement({data: `--------------------------\n`});
-
-        r += b.createTextElement({data: `${new Date().toLocaleTimeString()} (入店:${c})\n`});
-
-        r += b.createCutPaperElement({type: 'partial'});
-
-    });
-
-    const t = new StarWebPrintTrader({url: PRINTER_URL});
-
-    t.onReceive = async () => {
-
-        const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]');
-
-        localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart)));
-
-        localStorage.removeItem('cart_'+currentTable); currentCart = [];
-
-        if(window.cloudSync) await window.cloudSync(currentTable);
-
-        hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter();
-
-    };
-
-    t.sendMessage({request: r});
-
-}
-
-
-
-async function pay(doPrint) {
-
-    closeReceiptChoice(); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const g = localStorage.getItem('guests_'+currentTable); const c = localStorage.getItem('checkin_'+currentTable);
-
-    const b = new StarWebPrintBuilder(); let r = b.createInitializationElement(); r += b.createPeripheralElement({channel: 1, pulse: 200});
-
-    if(doPrint) {
-
-        let sub = 0, tx = 0; r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n`, width: 2, height: 2}); r += b.createTextElement({data: `札幌市白石区東札幌2条3丁目9-2\n\n`}); r += b.createAlignmentElement({position: 'left'});
-
-        r += b.createTextElement({data: `日時: ${new Date().toLocaleString()}\n席: ${currentTable} 客: ${g}名 入店: ${c}\n--------------------------------\n`});
-
-        hist.forEach(i => { const l = i.price*i.qty; sub += l; tx += Math.floor(l * i.rate); r += b.createTextElement({data: `${i.name}\n  ${i.qty}点 x ¥${i.price}    ¥${l}\n`}); });
-
-        r += b.createTextElement({data: `--------------------------------\n`}); r += b.createAlignmentElement({position: 'right'}); r += b.createTextElement({data: `税込合計: ¥${(sub + tx).toLocaleString()}\n`, width: 2, height: 2});
-
-        r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `\n[登録番号] T4430001061003\n株式会社Stag Beetle Corporation\n\n`}); r += b.createCutPaperElement({type: 'partial'});
-
+});
+snapshot.forEach((doc) => {
+const tId = doc.id; const data = doc.data();
+localStorage.setItem('history_'+tId, JSON.stringify(data.history || []));
+localStorage.setItem('guests_'+tId, data.guests || 0);
+localStorage.setItem('checkin_'+tId, data.checkin || "--:--");
+});
+renderIndex(); updateFooter();
+});
+
+window.cloudSync = async (tableId) => {
+await setDoc(doc(db, "tables", tableId), {
+history: JSON.parse(localStorage.getItem('history_' + tableId) || '[]'),
+guests: parseInt(localStorage.getItem('guests_' + tableId)) || 0,
+checkin: localStorage.getItem('checkin_' + tableId) || "--:--",
+updatedAt: Timestamp.now()
+});
+};
+
+window.saveSaleToCloud = async (tableId) => {
+const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
+const guests = parseInt(localStorage.getItem('guests_' + tableId)) || 0;
+const checkin = localStorage.getItem('checkin_' + tableId) || "--:--";
+let subtotal = 0, tax = 0;
+hist.forEach(i => { subtotal += i.price * i.qty; tax += Math.floor(i.price * i.qty * i.rate); });
+
+// ★【重要】ログインしていなくてもテーブル削除（席を空ける）を優先する
+try {
+    if (window.currentUser) {
+        await addDoc(collection(db, "sales"), {
+            tableId: tableId, guests: guests, checkin: checkin,
+            checkout: new Date().getHours().toString().padStart(2, '0') + ":" + new Date().getMinutes().toString().padStart(2, '0'),
+            items: hist, subtotal: subtotal, tax: tax, total: subtotal + tax, timestamp: Timestamp.now()
+        });
     }
+} catch (e) { console.warn("売上記録の作成をスキップしました(認証なし)"); }
 
-    const t = new StarWebPrintTrader({url: PRINTER_URL}); t.onReceive = async () => { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable); showIndex(); }; t.sendMessage({request: r});
+try {
+    await deleteDoc(doc(db, "tables", tableId));
+} catch (e) { console.error("テーブルの消去に失敗しました:", e); }
+};
 
-}
-
-window.onload = () => { renderIndex(); };
-
+window.getSalesData = async (mode) => {
+const now = new Date(); let start;
+if (mode === 'day') start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+else if (mode === 'dow') start = new Date(now.getFullYear(), now.getMonth(), 1);
+else if (mode === 'month') start = new Date(now.getFullYear(), 0, 1);
+const q = query(collection(db, "sales"), where("timestamp", ">=", Timestamp.fromDate(start)), orderBy("timestamp", "desc"));
+const snap = await getDocs(q);
+let res = []; snap.forEach(d => { let data = d.data(); data.id = d.id; res.push(data); });
+return res;
+};
+window.deleteSaleDoc = async (id) => { if(confirm("消去しますか？")) { await deleteDoc(doc(db, "sales", id)); showAdmin('day'); } };
+window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tableId)); };
 </script>
 
-</body>
+<div id="view-index" class="view active"><header><div class="admin-btn" id="admin-btn-label" onclick="checkAdminAuth()">売上管理</div><span>三船 席選択</span><div class="reload-btn" onclick="location.reload()">↻</div></header><div class="grid-tables" id="table-grid"></div></div>
+<div id="view-login" class="view"><header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>認証</span></div></header><div class="login-container"><div style="font-weight:bold; margin-bottom:20px;">オーナーログイン</div><input type="email" id="login-email" class="login-input" placeholder="メールアドレス"><input type="password" id="login-pass" class="login-input" placeholder="パスワード"><button class="btn-large" style="background:var(--primary); color:white; margin-top:20px;" onclick="handleLogin()">ログイン</button></div></div>
+<div id="view-admin" class="view"><header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>売上管理</span></div><div style="font-size:12px; color:var(--danger);" onclick="logoutOwner()">終了</div></header><div class="admin-nav"><div id="nav-day" class="admin-nav-btn active" onclick="showAdmin('day')">本日</div><div id="nav-dow" class="admin-nav-btn" onclick="showAdmin('dow')">曜日別</div><div id="nav-month" class="admin-nav-btn" onclick="showAdmin('month')">月別</div></div><div id="admin-summary-area" style="padding:15px; background:var(--dark); color:#fff; display:flex; justify-content:space-around; text-align:center; font-size:13px;"><div>件数<br><span id="sum-count" style="font-size:20px; font-weight:bold;">0</span></div><div>客数<br><span id="sum-guests" style="font-size:20px; font-weight:bold;">0</span></div><div>合計<br>¥<span id="sum-total" style="font-size:20px; font-weight:bold;">0</span></div></div><div class="report-btns"><button class="btn-report" onclick="printReport('day')">本日分 印刷</button><button class="btn-report" onclick="printReport('month')" style="background:var(--accent);">今月累計 印刷</button></div><div class="list-container" id="sales-list" style="background:#f4f4f4; padding:5px 0;"></div></div>
+<div id="view-guest" class="view"><header><span class="back-btn" onclick="showIndex()">＜</span>客数入力</header><div class="guest-input-container"><h2 id="guest-table-name"></h2><div class="guest-num-display"><span id="guest-count-val">0</span> 名</div><div class="keypad" id="guest-keypad"></div></div></div>
+<div id="view-menu" class="view"><header><span class="back-btn" onclick="showIndex()">×</span><span id="display-table-id"></span>番席 (<span id="display-guest-count"></span>名)<span style="margin-left:auto; font-size:11px; color:#666;">入店: <span id="display-checkin-time"></span></span></header><div class="menu-container"><div class="sidebar" id="side-cats"></div><div class="item-grid" id="display-items"></div></div><footer><div class="footer-history" onclick="showOrderHistory()"><span>注文済合計</span><span id="display-current-total">¥0</span></div><div class="footer-cart" onclick="showCart()"><div>🛒 <span id="cart-count">0</span>点</div><div>注文を確認 ＞</div></div></footer></div>
+<div id="view-cart" class="view"><header><span class="back-btn" onclick="exitEditing()">＜</span>カート確認</header><div class="list-container" id="cart-items-list"></div><div style="background:#fff; border-top:1px solid #eee; padding-bottom:10px;"><button class="btn-large" style="background:var(--info); color:white;" onclick="testSend()">送信(同期のみ)</button><button class="btn-large" style="background:var(--primary);color:white;" onclick="sendToKitchen()">本番送信</button></div></div>
+<div id="view-history" class="view"><header><span class="back-btn" onclick="exitEditing()">＜</span>修正</header><div class="list-container" id="history-items-list"></div><div class="summary-area" id="history-summary"></div><div style="background:#fff; border-top:1px solid #ddd; padding-bottom:10px;"><button class="btn-large" style="background:var(--accent); color:white;" onclick="confirmHistoryChange()">保存して同期</button><button class="btn-large" style="background:var(--secondary); color:white;" onclick="showCheckout()">お会計確定へ</button></div></div>
+<div id="view-checkout" class="view"><header><span class="back-btn" onclick="showOrderHistory()">＜</span>会計確定</header><div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;"><div style="padding:30px 20px; background:#fff; border-radius:15px; text-align:center; box-shadow:0 4px 10px rgba(0,0,0,0.1); width:85%;"><div id="checkout-final-total" style="font-size:40px; font-weight:bold; color:var(--primary);">¥0</div><div id="checkout-final-info" style="color:#666; font-size:12px;"></div></div></div><button class="btn-large" style="background:var(--info); color:white;" onclick="testPay()">【テスト】会計完了</button><button class="btn-large" style="background:var(--accent);color:white;" onclick="openReceiptChoice()">本番会計</button></div>
+<div id="overlay-receipt" class="overlay"><div class="modal"><div id="receipt-preview-area" style="display:none;"><div class="modal-title">印刷プレビュー</div><div id="sample-receipt-content" class="receipt-sample"></div></div><div class="modal-title" id="receipt-modal-main-title">印刷しますか？</div><button class="btn-large" style="background:var(--primary); color:white;" onclick="pay(true)">印刷して完了</button><button class="btn-large" style="background:var(--gray); color:white;" onclick="pay(false)">印刷せずに完了</button><div style="margin-top:15px; color:var(--info); font-size:12px; cursor:pointer;" onclick="closeReceiptChoice()">キャンセル</div></div></div>
+<div id="view-success" class="view" style="text-align:center; justify-content:center;"><h2>送信完了</h2><button class="btn-large" style="background:var(--primary);color:white;" onclick="showMenu()">戻る</button></div>
 
+<script>
+const rawData = [["お通し", "全メニュー", 300], ["もつ串", "美唄焼鳥", 150], ["鳥精肉", "美唄焼鳥", 170], ["手羽焼き（2本）", "焼き物", 400], ["国産豚のロース網焼きステーキ", "焼き物", 600], ["ハーフ豚の網焼きステーキ（1枚）", "焼き物", 700], ["ハーフ豚の炙りチャーシュー", "焼き物", 600], ["自家製つくねのコロコロ焼き（4玉）", "焼き物", 400], ["ささみ串焼き（数量限定 1串）", "焼き物", 250], ["鴨肉の網焼き", "焼き物", 600], ["ピリ辛ソーセージ（2本）", "焼き物", 400], ["ラムソーセージ（2本）", "焼き物", 500], ["うずらの玉子（1串）", "焼き物", 150], ["肉厚しいたけ（2個）", "焼き物", 300], ["プチトマト（1串）", "焼き物", 150], ["ズッキーニ（1串）", "焼き物", 150], ["長なす串焼き（1串）", "焼き物", 300], ["軟白ねぎ（1串）", "焼き物", 300], ["ししとう（2串）", "焼き物", 300], ["オリーブオイルにんにくカップ焼き", "焼き物", 500], ["焼きじゃがバター（2個）", "焼き物", 500], ["焼きじゃがバター（塩辛付き）（2個）", "焼き物", 600], ["いももちバター（4個）", "焼き物", 400], ["ささみ串（自家製塩こうじ漬け）", "焼き物", 300], ["国産豚のロース網焼きステーキ（自家製塩こうじ漬け）", "焼き物", 750], ["鳥もつ煮込み", "一品料理", 400], ["特製一口ザンギ", "一品料理", 550], ["手羽ザンギ(3本)", "一品料理", 550], ["若鶏の皮竜田揚げ(おろしポン酢付き)", "一品料理", 550], ["ササミカツ(2枚)", "一品料理", 600], ["国産豚のロースカツ", "一品料理", 700], ["コーンバター・チーズカップ", "一品料理", 500], ["生ハムの軟白ねぎ包み(岩塩付き)", "一品料理", 650], ["塩キャベツ", "一品料理", 350], ["漬物", "一品料理", 350], ["枝豆", "一品料理", 350], ["冷奴", "一品料理", 400], ["山わさび冷奴", "一品料理", 400], ["なめこおろし", "一品料理", 400], ["カニみそとうふ", "一品料理", 400], ["チャンジャ", "一品料理", 400], ["イカの塩辛", "一品料理", 400], ["たこわさび", "一品料理", 400], ["ほたてわさび", "一品料理", 400], ["数の子入り松前漬け", "一品料理", 400], ["クジラのベーコン ねぎ正油あえ", "一品料理", 700], ["自家製パンチェッタと芋熱湯風呂", "オリジナル", 700], ["自家製パンチェッタとコーン熱湯風呂", "オリジナル", 700], ["チャンジャとクリームチーズのタパス(おつまみ料理)", "オリジナル", 700], ["ハーブ豚チャーシューアヒージョ", "オリジナル", 700], ["砂肝マッシュルームアヒージョ", "オリジナル", 700], ["タコアヒージョ", "オリジナル", 700], ["ソーセージアヒージョ", "オリジナル", 700], ["バンズ", "オリジナル", 100], ["まぐろ刺し(数量限定)", "刺身", 700], ["とろしめさば", "刺身", 600], ["たこ頭刺し", "刺身", 600], ["馬刺し(赤身)", "刺身", 800], ["馬肉ユッケ", "刺身", 850], ["エイヒレ", "干物", 400], ["こまい一夜干し", "干物", 600], ["ししゃも", "干物", 500], ["鮭とば", "干物", 500], ["するめいか", "干物", 450], ["たらこ焼き", "干物", 450], ["鳥もつ鍋(一人前)", "鍋物", 1400], ["辛鳥もつ鍋(一人前)", "鍋物", 1500], ["鴨鍋(一人前)", "鍋物", 1300], ["湯どうふ(一人前)", "鍋物", 800], ["【追加】単品野菜", "鍋物", 500], ["【追加】単品もつ類", "鍋物", 800], ["【追加】雑炊セット", "鍋物", 350], ["【追加】単品そば", "鍋物", 300], ["冷しトマト", "サラダ", 400], ["オリジナルサラダ", "サラダ", 600], ["ツナサラダ", "サラダ", 700], ["生ハムサラダ", "サラダ", 800], ["もずく酢", "酢の物", 350], ["ピクルスの盛り合わせ", "酢の物", 550], ["りめし", "ご飯物", 400], ["やきとり丼ぶり", "ご飯物", 650], ["もつ煮込み丼ぶり", "ご飯物", 650], ["炙りチャーシュー丼ぶり", "ご飯物", 700], ["三船特製オムライス", "ご飯物", 700], ["山わさび丼ぶり", "ご飯物", 400], ["ライス(小)", "ご飯物", 200], ["ライス(大)", "ご飯物", 300], ["鳥がらそば", "麺類", 450], ["特製ラーメン(正油) ", "麺類", 750], ["特製チャーシューメン", "麺類", 900], ["バターコーンラーメン", "麺類", 900], ["もつそば温", "麺類", 600], ["もつせいろ冷", "麺類", 600], ["鳥せいろ冷", "麺類", 600], ["かしわそば温", "麺類", 600], ["冷むぎ", "麺類", 500], ["スープ", "麺類", 300], ["飲み放題延長", "飲み放題", 800], ["ドライ小", "ビール", 500], ["ドライ中", "ビール", 600], ["ドライ大", "ビール", 700], ["マルエフ中瓶", "ビール", 700], ["ラガー中瓶", "ビール", 700], ["ホッピーセット", "ビール", 600], ["ホッピー焼酎", "ビール", 300], ["ドライゼロ", "ビール", 500], ["ソラチエース", "ビール", 800], ["プレーンサワー", "サワー", 500], ["レモンサワー", "サワー", 500], ["ライムサワー", "サワー", 500], ["カシスサワー", "サワー", 500], ["梅サワー", "サワー", 500], ["グレープサワー", "サワー", 500], ["ぶどうサワー", "サワー", 500], ["青りんごサワー", "サワー", 500], ["カルピスサワー", "サワー", 500], ["シークァーサーサワー", "サワー", 500], ["ウーロンハイ", "サワー", 500], ["緑茶ハイ", "サワー", 500], ["コーヒー酎ハイ", "サワー", 500], ["生レモンサワー", "サワー", 600], ["生グレープサワー", "サワー", 600], ["赤ワイン", "ワイン", 500], ["白ワイン", "ワイン", 500], ["焼酎水割/ロック", "焼酎", 500], ["㐂六", "焼酎", 700], ["山ねこ", "焼酎", 700], ["山せみ", "焼酎", 700], ["山猿", "焼酎", 700], ["中々", "焼酎", 700], ["黒霧島", "焼酎", 700], ["海", "焼酎", 700], ["くじら", "焼酎", 700], ["よろしく千萬", "焼酎", 700], ["ニッカ麦", "焼酎", 700], ["金黒", "焼酎", 700], ["カシスソーダ", "カクテル", 550], ["カシスウーロン", "カクテル", 550], ["カシスオレンジ", "カクテル", 550], ["カシスグレープ", "カクテル", 550], ["カンパリオレンジ", "カクテル", 550], ["カンパリソーダ", "カクテル", 550], ["カンパリトニック", "カクテル", 550], ["ジントニック", "カクテル", 550], ["ジンライム", "カクテル", 550], ["ラムコーク", "カクテル", 550], ["ワインクーラー", "カクテル", 550], ["クーニャン", "カクテル", 550], ["ファジーネーブル", "カクテル", 550], ["シャンディガフ", "カクテル", 550], ["レッドアイ", "カクテル", 550], ["ブラッディメアリ", "カクテル", 550], ["スクリュードライバ", "カクテル", 550], ["ブルドック", "カクテル", 550], ["モスコミュール", "カクテル", 550], ["ウーロン茶", "ソフトドリンク", 350], ["ほうじ茶", "ソフトドリンク", 350], ["コーラ", "ソフトドリンク", 350], ["カルピス", "ソフトドリンク", 350], ["緑茶", "ソフトドリンク", 350], ["二世古", "日本酒", 850], ["繁桝", "日本酒", 900], ["福司", "日本酒", 850], ["まる田", "日本酒", 900], ["男山", "日本酒", 900], ["獺祭", "日本酒", 900], ["十一州", "日本酒", 900], ["久保田", "日本酒", 850], ["一ノ蔵", "日本酒", 800], ["ばくれん", "日本酒", 800], ["くどき上手", "日本酒", 900], ["北の勝", "日本酒", 800], ["越後で候", "日本酒", 900], ["李白", "日本酒", 850], ["常山", "日本酒", 900], ["開運", "日本酒", 900], ["大和しずく", "日本酒", 900], ["越乃寒梅", "日本酒", 800], ["八海山", "日本酒", 800], ["もつ串持帰", "テイクアウト", 150], ["精肉持帰", "テイクアウト", 170], ["もつ煮持帰", "テイクアウト", 300], ["もつ串10本", "無人", 1000], ["鳥精肉10本", "無人", 1000], ["MIX10本", "無人", 1000], ["弁当A", "無人", 1000], ["弁当B", "無人", 1000], ["飲み放題男", "飲み放題", 2280], ["飲み放題女", "飲み放題", 1980]];
+
+const menuData = [];
+const allCat = { cat: "全メニュー", items: [] };
+rawData.forEach(r => {
+allCat.items.push({n: r[0], p: r[2], c: r[1]});
+let c = menuData.find(x => x.cat === r[1]);
+if(!c) { c = {cat: r[1], items: []}; menuData.push(c); }
+c.items.push({n: r[0], p: r[2]});
+});
+menuData.unshift(allCat);
+
+const tablesL = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
+let currentTable = "", currentCart = [], tempGuestCount = "0";
+const PRINTER_URL = 'http://192.168.1.XX/StarWebPRNT/SendMessage';
+const isTestMode = true;
+
+function hideAll() { document.querySelectorAll('.view').forEach(v => v.style.display = 'none'); }
+function renderIndex() { const g = document.getElementById('table-grid'); if(!g) return; g.innerHTML = tablesL.map(t => { const h = JSON.parse(localStorage.getItem('history_'+t) || '[]'); const total = h.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); return `<div class="table-btn ${total>0?'occupied':''}" onclick="onTableClick('${t}')"><b>${t}</b><span class="price-badge">${total>0?'¥'+total.toLocaleString():'空席'}</span></div>`; }).join(''); }
+function showIndex() { window.isEditing = false; hideAll(); document.getElementById('view-index').style.display = 'flex'; renderIndex(); }
+function checkAdminAuth() { if(window.currentUser) showAdmin('day'); else { hideAll(); document.getElementById('view-login').style.display = 'flex'; } }
+function handleLogin() { window.loginOwner(document.getElementById('login-email').value, document.getElementById('login-pass').value); }
+function onTableClick(tId) { currentTable = tId; if(localStorage.getItem('history_' + tId)) showMenu(); else showGuestInput(); }
+
+async function showAdmin(mode) {
+hideAll(); document.getElementById('view-admin').style.display = 'flex';
+document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
+document.getElementById('nav-' + mode).classList.add('active');
+const list = document.getElementById('sales-list'); list.innerHTML = '<p style="text-align:center; padding:50px;">集計中...</p>';
+try {
+const sales = await window.getSalesData(mode);
+let total = 0, guests = 0, count = sales.length;
+if (mode === 'day') {
+list.innerHTML = sales.map(s => {
+total += s.total; guests += s.guests;
+return `<div class="sale-card">
+<div class="sale-time-row"><span class="sale-time">${s.checkout}</span><span class="sale-table-badge">${s.tableId}番</span></div>
+<div class="sale-detail-info">客: ${s.guests}名 / 入店: ${s.checkin}</div>
+<div class="sale-total-line"><span class="sale-price-big">¥${s.total.toLocaleString()}</span><button class="btn-del-sale" onclick="deleteSaleDoc('${s.id}')">削除</button></div>
+</div>`;
+}).join('') || '<p style="text-align:center; padding:50px;">データなし</p>';
+} else {
+list.innerHTML = '<p style="text-align:center; padding:50px;">(週/月計は印刷のみ対応)</p>';
+}
+document.getElementById('sum-total').innerText = total.toLocaleString();
+document.getElementById('sum-guests').innerText = guests;
+document.getElementById('sum-count').innerText = count;
+} catch(e) { list.innerHTML = `<p style="color:red;">エラー: ${e.message}</p>`; }
+}
+
+async function printReport(mode) {
+const sales = await window.getSalesData(mode);
+if(sales.length === 0) return alert("なし");
+let total = 0, guests = 0, sub = 0, tx = 0; sales.forEach(s => { total += s.total; guests += s.guests; sub += s.subtotal; tx += s.tax; });
+const b = new StarWebPrintBuilder(); let r = b.createInitializationElement();
+r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n報告書\n`, width:2, height:2});
+r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `--------------------------------\n件数: ${sales.length} / 客数: ${guests}\n--------------------------------\n税込計: ¥${total.toLocaleString()}\n`});
+r += b.createCutPaperElement({type: 'partial'});
+const t = new StarWebPrintTrader({url: PRINTER_URL}); t.sendMessage({request: r});
+}
+
+function showGuestInput() { hideAll(); tempGuestCount = "0"; document.getElementById('guest-table-name').innerText = currentTable + "番席"; document.getElementById('guest-count-val').innerText = tempGuestCount; document.getElementById('view-guest').style.display = 'flex'; const k = document.getElementById('guest-keypad'); k.innerHTML = [1,2,3,4,5,6,7,8,9,'C',0,'決定'].map(num => { let s = num === '決定' ? 'background:var(--accent); color:#fff;' : ''; let f = num === '決定' ? 'confirmGuestCount()' : (num === 'C' ? 'clearGuestNum()' : `inputGuestNum(${num})`); return `<button class="key-btn" style="${s}" onclick="${f}">${num}</button>`; }).join(''); }
+function inputGuestNum(n) { if(tempGuestCount === "0") tempGuestCount = n.toString(); else if(tempGuestCount.length < 2) tempGuestCount += n.toString(); document.getElementById('guest-count-val').innerText = tempGuestCount; }
+function clearGuestNum() { tempGuestCount = "0"; document.getElementById('guest-count-val').innerText = tempGuestCount; }
+async function confirmGuestCount() { let c = parseInt(tempGuestCount); if(c < 1) return alert("人数を入力"); localStorage.setItem('guests_' + currentTable, c); const now = new Date(); localStorage.setItem('checkin_' + currentTable, now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0')); if(window.cloudSync) await window.cloudSync(currentTable); showMenu(); }
+function showMenu() { window.isEditing = false; currentCart = JSON.parse(localStorage.getItem('cart_'+currentTable) || '[]'); hideAll(); document.getElementById('view-menu').style.display = 'flex'; document.getElementById('display-table-id').innerText = currentTable; document.getElementById('display-guest-count').innerText = localStorage.getItem('guests_' + currentTable) || "0"; document.getElementById('display-checkin-time').innerText = localStorage.getItem('checkin_' + currentTable) || "--:--"; renderSidebar(); renderItems(menuData[0]); updateFooter(); }
+function renderSidebar() { const side = document.getElementById('side-cats'); side.innerHTML = menuData.map((d, idx) => `<div class="cat" onclick="changeCat(this, ${idx})">${d.cat}</div>`).join(''); side.children[0].classList.add('active'); }
+function changeCat(el, idx) { document.querySelectorAll('.cat').forEach(c => c.classList.remove('active')); el.classList.add('active'); renderItems(menuData[idx]); }
+function renderItems(category) { const container = document.getElementById('display-items'); container.innerHTML = category.items.map((item, idx) => { const rate = (category.cat === "テイクアウト" || category.cat === "無人" || item.c === "テイクアウト" || item.c === "無人") ? 0.08 : 0.10; const taxInc = Math.floor(item.p * (1 + rate)); return `<div class="item-card"><div class="item-info"><span class="item-name">${item.n}</span><span class="item-price">¥${item.p.toLocaleString()} <small style="font-size:10px; color:#999;">(税込¥${taxInc.toLocaleString()})</small></span></div><div class="qty-ctrl"><div class="btn-circle" onclick="changeQty('q${idx}', -1)">-</div><span id="q${idx}" style="font-weight:bold; min-width:18px; text-align:center;">1</span><div class="btn-circle" onclick="changeQty('q${idx}', 1)">+</div><button class="btn-add" onclick="addToCart('${item.n}', ${item.p}, 'q${idx}', ${rate})">追加</button></div></div>`; }).join(''); }
+function changeQty(id, d) { const el = document.getElementById(id); let v = parseInt(el.innerText) + d; if(v >= 1) el.innerText = v; }
+function addToCart(name, price, qId, rate) { const qty = parseInt(document.getElementById(qId).innerText); const exist = currentCart.find(i => i.name === name); if(exist) exist.qty += qty; else currentCart.push({name, price, qty, rate}); localStorage.setItem('cart_'+currentTable, JSON.stringify(currentCart)); updateFooter(); document.getElementById(qId).innerText = 1; }
+function changeCartQty(idx, delta) { currentCart[idx].qty += delta; if(currentCart[idx].qty < 1) currentCart[idx].qty = 1; localStorage.setItem('cart_'+currentTable, JSON.stringify(currentCart)); renderCartUI(); updateFooter(); }
+function removeFromCart(idx) { currentCart.splice(idx, 1); localStorage.setItem('cart_'+currentTable, JSON.stringify(currentCart)); renderCartUI(); updateFooter(); }
+function renderCartUI() { document.getElementById('cart-items-list').innerHTML = currentCart.map((i, idx) => `<div class="list-row"><div style="flex:1;"><b>${i.name}</b><br><small>¥${i.price.toLocaleString()} x ${i.qty}</small></div><div style="display:flex; align-items:center; gap:8px;"><div class="btn-circle" onclick="changeCartQty(${idx}, -1)">-</div><span style="font-weight:bold;">${i.qty}</span><div class="btn-circle" onclick="changeCartQty(${idx}, 1)">+</div><button class="btn-del" onclick="removeFromCart(${idx})">削除</button></div></div>`).join('') || '<p style="text-align:center;padding:50px;color:#999;">カートは空です</p>'; }
+function showCart() { window.isEditing = true; hideAll(); document.getElementById('view-cart').style.display = 'flex'; renderCartUI(); }
+function changeHistoryQty(idx, delta) { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); hist[idx].qty += delta; if(hist[idx].qty <= 0) { if(!confirm("削除？")) return; hist.splice(idx, 1); } localStorage.setItem('history_'+currentTable, JSON.stringify(hist)); renderHistoryUI(); }
+function renderHistoryUI() { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); let sub = 0, tax = 0; document.getElementById('history-items-list').innerHTML = hist.map((i, idx) => { const lp = i.price * i.qty; const lt = Math.floor(lp * i.rate); sub += lp; tax += lt; return `<div class="list-row"><div><b>${i.name}</b><br><small>税込¥${(lp+lt).toLocaleString()}</small></div><div style="display:flex; align-items:center; gap:10px;"><div class="btn-circle" onclick="changeHistoryQty(${idx}, -1)">-</div><span style="font-weight:bold;">${i.qty}</span><div class="btn-circle" onclick="changeHistoryQty(${idx}, 1)">+</div></div></div>`; }).join('') || '<p style="text-align:center;padding:50px;">なし</p>'; document.getElementById('history-summary').innerHTML = `<div style="color:#666; font-size:13px;">入店: ${localStorage.getItem('checkin_'+currentTable)} / 客: ${localStorage.getItem('guests_'+currentTable)}名</div><div>税込計: <b style="font-size:24px; color:var(--primary);">¥${(sub + tax).toLocaleString()}</b></div>`; }
+async function confirmHistoryChange() { if(window.cloudSync) await window.cloudSync(currentTable); alert("同期完了"); }
+function exitEditing() { window.isEditing = false; showMenu(); }
+function showOrderHistory() { window.isEditing = true; hideAll(); document.getElementById('view-history').style.display = 'flex'; renderHistoryUI(); }
+function showCheckout() { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const total = hist.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); document.getElementById('checkout-final-total').innerText = "¥" + total.toLocaleString(); document.getElementById('checkout-final-info').innerText = `入店 ${localStorage.getItem('checkin_'+currentTable)} / 客 ${localStorage.getItem('guests_'+currentTable)}名`; hideAll(); document.getElementById('view-checkout').style.display = 'flex'; }
+function updateFooter() { document.getElementById('cart-count').innerText = currentCart.reduce((s, i) => s + i.qty, 0); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const total = hist.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); document.getElementById('display-current-total').innerText = "税込合計: ¥" + total.toLocaleString(); }
+function openReceiptChoice() { if (isTestMode) { document.getElementById('receipt-preview-area').style.display = 'block'; renderReceiptSample(); } document.getElementById('overlay-receipt').style.display = 'flex'; }
+function renderReceiptSample() {
+const h = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const g = localStorage.getItem('guests_'+currentTable) || 0; const c = localStorage.getItem('checkin_'+currentTable) || "--:--"; let sub = 0, tx = 0;
+let t = `<div class="text-center text-bold">美唄焼鳥三船 東札幌店</div><div class="text-center">札幌市白石区東札幌2条3丁目9-2</div><div class="receipt-hr"></div><div>日時: ${new Date().toLocaleString()}</div><div>席: ${currentTable} 客: ${g}名 入店: ${c}</div><div class="receipt-hr"></div>`;
+h.forEach(i => { const l = i.price*i.qty; sub += l; tx += Math.floor(l * i.rate); t += `<div>${i.name}</div><div style="display:flex; justify-content:space-between;"><span>&nbsp;${i.qty}点 x ¥${i.price.toLocaleString()}</span><span>¥${l.toLocaleString()}</span></div>`; });
+t += `<div class="receipt-hr"></div><div class="text-right text-bold">税込合計: ¥${(sub+tx).toLocaleString()}</div><div class="receipt-hr"></div><div class="text-center">[登録番号] T4430001061003</div>`;
+document.getElementById('sample-receipt-content').innerHTML = t;
+}
+function closeReceiptChoice() { document.getElementById('overlay-receipt').style.display = 'none'; }
+async function testSend() { if(currentCart.length === 0) return alert("空です"); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart))); localStorage.removeItem('cart_'+currentTable); currentCart = []; if(window.cloudSync) await window.cloudSync(currentTable); hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter(); }
+async function testPay() { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable); showIndex(); }
+
+async function sendToKitchen() {
+if(currentCart.length === 0) return;
+const b = new StarWebPrintBuilder(); let r = ""; const c = localStorage.getItem('checkin_'+currentTable) || "--:--";
+currentCart.forEach(item => {
+r += b.createInitializationElement(); r += b.createAlignmentElement({position: 'left'});
+const itemLine = `[${currentTable}] ${item.name} ${item.qty}\n`;
+r += b.createTextElement({ data: itemLine, width: 2, height: 2 });
+r += b.createTextElement({data: `--------------------------\n`});
+r += b.createTextElement({data: `${new Date().toLocaleTimeString()} (入店:${c})\n`});
+r += b.createCutPaperElement({type: 'partial'});
+});
+const t = new StarWebPrintTrader({url: PRINTER_URL});
+t.onReceive = async () => {
+const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]');
+localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart)));
+localStorage.removeItem('cart_'+currentTable); currentCart = [];
+if(window.cloudSync) await window.cloudSync(currentTable);
+hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter();
+};
+t.sendMessage({request: r});
+}
+
+async function pay(doPrint) {
+closeReceiptChoice(); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const g = localStorage.getItem('guests_'+currentTable); const c = localStorage.getItem('checkin_'+currentTable);
+const b = new StarWebPrintBuilder(); let r = b.createInitializationElement(); r += b.createPeripheralElement({channel: 1, pulse: 200});
+if(doPrint) {
+let sub = 0, tx = 0; r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n`, width: 2, height: 2}); r += b.createTextElement({data: `札幌市白石区東札幌2条3丁目9-2\n\n`}); r += b.createAlignmentElement({position: 'left'});
+r += b.createTextElement({data: `日時: ${new Date().toLocaleString()}\n席: ${currentTable} 客: ${g}名 入店: ${c}\n--------------------------------\n`});
+hist.forEach(i => { const l = i.price*i.qty; sub += l; tx += Math.floor(l * i.rate); r += b.createTextElement({data: `${i.name}\n  ${i.qty}点 x ¥${i.price}    ¥${l}\n`}); });
+r += b.createTextElement({data: `--------------------------------\n`}); r += b.createAlignmentElement({position: 'right'}); r += b.createTextElement({data: `税込合計: ¥${(sub + tx).toLocaleString()}\n`, width: 2, height: 2});
+r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `\n[登録番号] T4430001061003\n株式会社Stag Beetle Corporation\n\n`}); r += b.createCutPaperElement({type: 'partial'});
+}
+const t = new StarWebPrintTrader({url: PRINTER_URL}); t.onReceive = async () => { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable); showIndex(); }; t.sendMessage({request: r});
+}
+window.onload = () => { renderIndex(); };
+</script>
+</body>
 </html>

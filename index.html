@@ -177,6 +177,7 @@ return res.sort((a,b) => b.timestamp - a.timestamp);
 };
 
 window.deleteSaleDoc = async (id) => { if(confirm("消去しますか？")) { await deleteDoc(doc(db, "sales", id)); await new Promise(r => setTimeout(r, 500)); showAdmin('day'); } };
+window.deleteDaySales = async (ids) => { if(confirm(`この日の${ids.length}件をまとめて削除しますか？`)) { await Promise.all(ids.map(id => deleteDoc(doc(db, "sales", id)))); await new Promise(r => setTimeout(r, 500)); showAdmin('dates'); } };
 window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tableId)); };
 </script>
 
@@ -501,12 +502,12 @@ async function showAdmin(mode) {
                 const d = s.timestamp.toDate();
                 const key = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
                 const dow = ['日','月','火','水','木','金','土'][d.getDay()];
-                if(!dayMap[key]) dayMap[key] = { label: `${key}（${dow}）`, t: 0, c: 0, g: 0, ts: d.getTime() };
-                dayMap[key].t += s.total; dayMap[key].c++; dayMap[key].g += s.guests;
+                if(!dayMap[key]) dayMap[key] = { label: `${key}（${dow}）`, t: 0, c: 0, g: 0, ts: d.getTime(), ids: [] };
+                dayMap[key].t += s.total; dayMap[key].c++; dayMap[key].g += s.guests; dayMap[key].ids.push(s.id);
                 total += s.total; guests += s.guests;
             });
             const sorted = Object.values(dayMap).sort((a,b) => b.ts - a.ts);
-            list.innerHTML = sorted.map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time" style="font-size:15px;">${s.label}</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}名</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span></div></div>`).join('') || '<p style="text-align:center; padding:50px;">データなし</p>';
+            list.innerHTML = sorted.map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time" style="font-size:15px;">${s.label}</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}名</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span><button class="btn-del-sale" onclick="deleteDaySales(${JSON.stringify(s.ids)})">削除</button></div></div>`).join('') || '<p style="text-align:center; padding:50px;">データなし</p>';
         } else if (mode === 'dow') {
             const labels = ['日','月','火','水','木','金','土'];
             let stats = [0,1,2,3,4,5,6].map(i=>({l:labels[i], t:0, c:0, g:0}));

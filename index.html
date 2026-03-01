@@ -435,6 +435,26 @@ const rawData = [
 
 // --- カテゴリー分類ロジック (構造維持) ---
 const menuData = []; const allCat = { cat: "全メニュー", items: [] }; rawData.forEach(r => { allCat.items.push({n: r[0], p: r[2], c: r[1]}); let c = menuData.find(x => x.cat === r[1]); if(!c) { c = {cat: r[1], items: []}; menuData.push(c); } c.items.push({n: r[0], p: r[2]}); }); menuData.unshift(allCat);
+
+// ▼▼▼ 人気メニュー機能追加 ▼▼▼
+function buildPopularCategory() {
+    const tablesAll = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
+    const countMap = {};
+    tablesAll.forEach(tId => {
+        const hist = JSON.parse(localStorage.getItem('history_' + tId) || '[]');
+        hist.forEach(i => { countMap[i.name] = (countMap[i.name] || 0) + i.qty; });
+    });
+    const sorted = Object.entries(countMap).sort((a, b) => b[1] - a[1]).slice(0, 15);
+    if (sorted.length === 0) return;
+    const popularItems = sorted.map(([name, cnt]) => {
+        const found = allCat.items.find(x => x.n === name);
+        return found ? { n: found.n, p: found.p, _cnt: cnt } : null;
+    }).filter(Boolean);
+    const existIdx = menuData.findIndex(x => x.cat === '🔥 人気TOP15');
+    const newCat = { cat: '🔥 人気TOP15', items: popularItems };
+    if (existIdx >= 0) menuData[existIdx] = newCat; else menuData.splice(1, 0, newCat);
+}
+// ▲▲▲ 人気メニュー機能追加 ▲▲▲
 const tablesL = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
 let currentTable = "", currentCart = [], tempGuestCount = "0";
 const PRINTER_URL = 'http://192.168.1.XX/StarWebPRNT/SendMessage';
@@ -505,10 +525,10 @@ function showGuestInput() { hideAll(); tempGuestCount = "0"; document.getElement
 function inputGuestNum(n) { if(tempGuestCount === "0") tempGuestCount = n.toString(); else if(tempGuestCount.length < 2) tempGuestCount += n.toString(); document.getElementById('guest-count-val').innerText = tempGuestCount; }
 function clearGuestNum() { tempGuestCount = "0"; document.getElementById('guest-count-val').innerText = tempGuestCount; }
 async function confirmGuestCount() { let c = parseInt(tempGuestCount); if(c < 1) return alert("人数を入力してください"); localStorage.setItem('guests_' + currentTable, c); const now = new Date(); localStorage.setItem('checkin_' + currentTable, now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0')); if(window.cloudSync) await window.cloudSync(currentTable); showMenu(); }
-function showMenu() { window.isEditing = false; currentCart = JSON.parse(localStorage.getItem('cart_'+currentTable) || '[]'); hideAll(); document.getElementById('view-menu').style.display = 'flex'; document.getElementById('display-table-id').innerText = currentTable; document.getElementById('display-guest-count').innerText = localStorage.getItem('guests_' + currentTable) || "0"; document.getElementById('display-checkin-time').innerText = localStorage.getItem('checkin_' + currentTable) || "--:--"; renderSidebar(); renderItems(menuData[0]); updateFooter(); }
+function showMenu() { window.isEditing = false; currentCart = JSON.parse(localStorage.getItem('cart_'+currentTable) || '[]'); hideAll(); document.getElementById('view-menu').style.display = 'flex'; document.getElementById('display-table-id').innerText = currentTable; document.getElementById('display-guest-count').innerText = localStorage.getItem('guests_' + currentTable) || "0"; document.getElementById('display-checkin-time').innerText = localStorage.getItem('checkin_' + currentTable) || "--:--"; buildPopularCategory(); renderSidebar(); renderItems(menuData[0]); updateFooter(); }
 function renderSidebar() { const side = document.getElementById('side-cats'); side.innerHTML = menuData.map((d, idx) => `<div class="cat" onclick="changeCat(this, ${idx})">${d.cat}</div>`).join(''); side.children[0].classList.add('active'); }
 function changeCat(el, idx) { document.querySelectorAll('.cat').forEach(c => c.classList.remove('active')); el.classList.add('active'); renderItems(menuData[idx]); }
-function renderItems(category) { const container = document.getElementById('display-items'); container.innerHTML = category.items.map((item, idx) => { const rate = (category.cat === "テイクアウト" || category.cat === "無人" || item.c === "テイクアウト" || item.c === "無人") ? 0.08 : 0.10; const taxInc = Math.floor(item.p * (1 + rate)); return `<div class="item-card"><div class="item-info"><span class="item-name">${item.n}</span><span class="item-price">¥${item.p.toLocaleString()} <small style="font-size:10px; color:#999;">(税込¥${taxInc.toLocaleString()})</small></span></div><div class="qty-ctrl"><div class="btn-circle" onclick="changeQty('q${idx}', -1)">-</div><span id="q${idx}" style="font-weight:bold; min-width:18px; text-align:center;">1</span><div class="btn-circle" onclick="changeQty('q${idx}', 1)">+</div><button class="btn-add" onclick="addToCart('${item.n}', ${item.p}, 'q${idx}', ${rate})">追加</button></div></div>`; }).join(''); }
+function renderItems(category) { const container = document.getElementById('display-items'); container.innerHTML = category.items.map((item, idx) => { const rate = (category.cat === "テイクアウト" || category.cat === "無人" || item.c === "テイクアウト" || item.c === "無人") ? 0.08 : 0.10; const taxInc = Math.floor(item.p * (1 + rate)); const cntBadge = item._cnt ? `<span style="display:inline-block; background:#e74c3c; color:#fff; font-size:10px; font-weight:bold; border-radius:10px; padding:2px 7px; margin-left:5px;">注文${item._cnt}点</span>` : ''; return `<div class="item-card"><div class="item-info"><span class="item-name">${item.n}${cntBadge}</span><span class="item-price">¥${item.p.toLocaleString()} <small style="font-size:10px; color:#999;">(税込¥${taxInc.toLocaleString()})</small></span></div><div class="qty-ctrl"><div class="btn-circle" onclick="changeQty('q${idx}', -1)">-</div><span id="q${idx}" style="font-weight:bold; min-width:18px; text-align:center;">1</span><div class="btn-circle" onclick="changeQty('q${idx}', 1)">+</div><button class="btn-add" onclick="addToCart('${item.n}', ${item.p}, 'q${idx}', ${rate})">追加</button></div></div>`; }).join(''); }
 function changeQty(id, d) { const el = document.getElementById(id); let v = parseInt(el.innerText) + d; if(v >= 1) el.innerText = v; }
 function addToCart(name, price, qId, rate) { const qty = parseInt(document.getElementById(qId).innerText); const exist = currentCart.find(i => i.name === name); if(exist) exist.qty += qty; else currentCart.push({name, price, qty, rate}); localStorage.setItem('cart_'+currentTable, JSON.stringify(currentCart)); updateFooter(); document.getElementById(qId).innerText = 1; }
 function changeCartQty(idx, delta) { currentCart[idx].qty += delta; if(currentCart[idx].qty < 1) currentCart[idx].qty = 1; localStorage.setItem('cart_'+currentTable, JSON.stringify(currentCart)); renderCartUI(); updateFooter(); }

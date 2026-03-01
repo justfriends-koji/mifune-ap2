@@ -162,6 +162,7 @@ await deleteDoc(doc(db, "tables", tableId));
 
 window.getSalesData = async (mode) => {
 const now = new Date();
+const { getDocs, collection, getFirestore, query } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
 const snap = await getDocs(collection(db, "sales"));
 let res = [];
 snap.forEach(d => {
@@ -175,7 +176,7 @@ snap.forEach(d => {
 return res.sort((a,b) => b.timestamp - a.timestamp);
 };
 
-window.deleteSaleDoc = async (id) => { if(confirm("消去しますか？")) { await deleteDoc(doc(db, "sales", id)); showAdmin('day'); } };
+window.deleteSaleDoc = async (id) => { if(confirm("消去しますか？")) { await deleteDoc(doc(db, "sales", id)); await new Promise(r => setTimeout(r, 500)); showAdmin('day'); } };
 window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tableId)); };
 </script>
 
@@ -445,14 +446,11 @@ async function buildPopularCategory() {
         const hist = JSON.parse(localStorage.getItem('history_' + tId) || '[]');
         hist.forEach(i => { countMap[i.name] = (countMap[i.name] || 0) + i.qty; });
     });
-    // Firebaseのsales（過去の完了済み注文）からも集計
+    // window.getSalesData('dow') で全salesを取得（既存のdb接続を再利用）
     try {
-        const { getDocs, collection, getFirestore } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-        const db = getFirestore();
-        const snap = await getDocs(collection(db, "sales"));
-        snap.forEach(d => {
-            const items = d.data().items || [];
-            items.forEach(i => { countMap[i.name] = (countMap[i.name] || 0) + i.qty; });
+        const allSales = await window.getSalesData('dow');
+        allSales.forEach(s => {
+            (s.items || []).forEach(i => { countMap[i.name] = (countMap[i.name] || 0) + i.qty; });
         });
     } catch(e) { console.warn("sales集計エラー:", e); }
 

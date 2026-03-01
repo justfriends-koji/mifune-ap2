@@ -176,8 +176,8 @@ snap.forEach(d => {
 return res.sort((a,b) => b.timestamp - a.timestamp);
 };
 
-window.deleteSaleDoc = async (id) => { if(confirm("消去しますか？")) { await deleteDoc(doc(db, "sales", id)); await new Promise(r => setTimeout(r, 500)); showAdmin('day'); } };
-window.deleteDaySales = async (ids) => { if(confirm(`この日の${ids.length}件をまとめて削除しますか？`)) { await Promise.all(ids.map(id => deleteDoc(doc(db, "sales", id)))); await new Promise(r => setTimeout(r, 500)); showAdmin('dates'); } };
+window.deleteSaleDoc = async (id) => { if(confirm("消去しますか？")) { await deleteDoc(doc(db, "sales", id)); await new Promise(r => setTimeout(r, 500)); window.showAdmin('day'); } };
+window.deleteDaySales = async (ids) => { if(confirm(`この日の${ids.length}件をまとめて削除しますか？`)) { await Promise.all(ids.map(id => deleteDoc(doc(db, "sales", id)))); await new Promise(r => setTimeout(r, 500)); window.showAdmin('dates'); } };
 window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tableId)); };
 </script>
 
@@ -481,6 +481,7 @@ function handleLogin() { window.loginOwner(document.getElementById('login-email'
 function onTableClick(tId) { currentTable = tId; if(localStorage.getItem('history_' + tId)) showMenu(); else showGuestInput(); }
 
 async function showAdmin(mode) {
+    window.showAdmin = showAdmin;
     hideAll(); document.getElementById('view-admin').style.display = 'flex';
     document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
     const navId = mode==='month'?'month':mode==='dow'?'dow':mode==='dates'?'dates':'day';

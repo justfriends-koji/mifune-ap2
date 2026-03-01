@@ -665,10 +665,24 @@ async function pay(doPrint) {
 closeReceiptChoice(); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const g = localStorage.getItem('guests_'+currentTable); const c = localStorage.getItem('checkin_'+currentTable);
 const b = new StarWebPrintBuilder(); let r = b.createInitializationElement(); r += b.createPeripheralElement({channel: 1, pulse: 200});
 if(doPrint) {
-let sub = 0, tx = 0; r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n`, width: 2, height: 2}); r += b.createTextElement({data: `札幌市白石区東札幌2条3丁目9-2\n\n`}); r += b.createAlignmentElement({position: 'left'});
+let sub8 = 0, tax8 = 0, sub10 = 0, tax10 = 0;
+r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥\n三船 東札幌店\n`, width: 2, height: 2}); r += b.createTextElement({data: `札幌市白石区東札幌2条3丁目9-2\n\n`}); r += b.createAlignmentElement({position: 'left'});
 r += b.createTextElement({data: `日時: ${new Date().toLocaleString()}\n席: ${currentTable} 客: ${g}名 入店: ${c}\n--------------------------------\n`});
-hist.forEach(i => { const l = i.price*i.qty; sub += l; tx += Math.floor(l * i.rate); r += b.createTextElement({data: `${i.name}\n  ${i.qty}点 x ¥${i.price}    ¥${l}\n`}); });
-r += b.createTextElement({data: `--------------------------------\n`}); r += b.createAlignmentElement({position: 'right'}); r += b.createTextElement({data: `税込合計: ¥${(sub + tx).toLocaleString()}\n`, width: 2, height: 2});
+hist.forEach(i => {
+    const l = i.price * i.qty;
+    const t = Math.floor(l * i.rate);
+    const taxInc = l + t;
+    if(i.rate === 0.08) { sub8 += l; tax8 += t; } else { sub10 += l; tax10 += t; }
+    const mark = i.rate === 0.08 ? '※' : '';
+    r += b.createTextElement({data: `${i.name}${mark}\n  ${i.qty}点 x ¥${i.price}    ¥${taxInc.toLocaleString()}\n`});
+});
+const grandTotal = sub8 + tax8 + sub10 + tax10;
+r += b.createTextElement({data: `--------------------------------\n`});
+r += b.createAlignmentElement({position: 'right'}); r += b.createTextElement({data: `税込合計: ¥${grandTotal.toLocaleString()}\n`, width: 2, height: 2});
+r += b.createAlignmentElement({position: 'left'});
+r += b.createTextElement({data: `--------------------------------\n`});
+if(sub10 > 0) r += b.createTextElement({data: `10%対象: ¥${(sub10+tax10).toLocaleString()}  消費税: ¥${tax10.toLocaleString()}\n`});
+if(sub8 > 0)  r += b.createTextElement({data: `※8%対象: ¥${(sub8+tax8).toLocaleString()}   消費税: ¥${tax8.toLocaleString()}\n`});
 r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `\n[登録番号] T4430001061003\n株式会社Stag Beetle Corporation\n\n`}); r += b.createCutPaperElement({type: 'partial'});
 }
 const t = new StarWebPrintTrader({url: PRINTER_URL}); t.onReceive = async () => { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable); showIndex(); }; t.sendMessage({request: r});

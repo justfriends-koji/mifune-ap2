@@ -23,8 +23,7 @@ header { background: #fff; padding: 0 15px; display: flex; align-items: center; 
 .table-btn.occupied { background: #e8f5e9; border-color: #27ae60; }
 .price-badge { display: block; font-size: 11px; color: #e67e22; margin-top: 5px; font-weight: bold; }
 .login-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; background: #fff; }
-.login-title { font-size: 24px; font-weight: bold; margin-bottom: 40px; color: var(--dark); }
-.login-input { width: 100%; max-width: 450px; padding: 25px; margin-bottom: 25px; border: 3px solid #ddd; border-radius: 18px; font-size: 28px; background: #fafafa; -webkit-appearance: none; }
+.login-input { width: 100%; max-width: 450px; padding: 25px; margin-bottom: 25px; border: 3px solid #ddd; border-radius: 18px; font-size: 28px; background: #fafafa; }
 .guest-input-container { text-align: center; padding: 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; }
 .guest-num-display { font-size: 60px; font-weight: bold; margin-bottom: 20px; color: var(--primary); background: #eee; border-radius: 15px; padding: 15px; width: 100%; max-width: 400px; margin-left: auto; margin-right: auto; }
 .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; max-width: 450px; margin: 0 auto; }
@@ -47,11 +46,8 @@ footer { width: 100%; display: flex; flex-direction: column; z-index: 100; box-s
 .list-row { display: flex; justify-content: space-between; padding: 18px; border-bottom: 1px solid #eee; align-items: center; }
 .summary-area { padding: 15px 25px; text-align: right; background: #fff; border-top: 2px solid #eee; flex-shrink: 0; line-height: 1.6; font-size: 15px; }
 .btn-large { width: 90%; display: block; margin: 10px auto; padding: 20px; border: none; border-radius: 40px; font-size: 20px; font-weight: bold; cursor: pointer; text-align: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-
 .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: center; padding: 20px 0; }
-.modal { background: #fff; width: 90%; max-width: 340px; border-radius: 20px; padding: 20px; text-align: center; position: relative; max-height: 90dvh; overflow-y: auto; }
-.receipt-sample { background: #fff; padding: 15px; color: #000; font-family: monospace; text-align: left; font-size: 11px; border: 1px dashed #ccc; width: 100%; }
-.receipt-hr { border-top: 1px dashed #000; margin: 5px 0; }
+.modal { background: #fff; width: 90%; max-width: 340px; border-radius: 20px; padding: 20px; text-align: center; }
 </style>
 </head>
 <body>
@@ -81,34 +77,18 @@ window.isEditing = false;
 onAuthStateChanged(auth, (user) => {
 window.currentUser = user;
 const btnLabel = document.getElementById('admin-btn-label');
-if(user) {
-btnLabel.innerText = "売上管理(店主)";
-btnLabel.style.background = "#e8f5e9";
-} else {
-btnLabel.innerText = "売上管理";
-btnLabel.style.background = "#fff";
-}
+if(user) { btnLabel.innerText = "売上管理(店主)"; btnLabel.style.background = "#e8f5e9"; } 
+else { btnLabel.innerText = "売上管理"; btnLabel.style.background = "#fff"; }
 });
 
 window.loginOwner = async (email, pass) => {
-try {
-await signInWithEmailAndPassword(auth, email, pass);
-alert("ログイン成功");
-showAdmin('day');
-} catch(e) { alert("ログイン失敗: パスワードをご確認ください"); }
+try { await signInWithEmailAndPassword(auth, email, pass); alert("成功"); showAdmin('day'); } catch(e) { alert("失敗"); }
 };
 
-window.logoutOwner = () => { signOut(auth); alert("ログアウト完了"); showIndex(); };
+window.logoutOwner = () => { signOut(auth); showIndex(); };
 
 onSnapshot(collection(db, "tables"), (snapshot) => {
 if(window.isEditing) return;
-const tablesList = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
-const cloudIds = snapshot.docs.map(d => d.id);
-tablesList.forEach(tId => {
-if(!cloudIds.includes(tId)) {
-localStorage.removeItem('history_'+tId); localStorage.removeItem('guests_'+tId); localStorage.removeItem('checkin_'+tId);
-}
-});
 snapshot.forEach((doc) => {
 const tId = doc.id; const data = doc.data();
 localStorage.setItem('history_'+tId, JSON.stringify(data.history || []));
@@ -130,7 +110,6 @@ updatedAt: Timestamp.now()
 window.saveSaleToCloud = async (tableId) => {
 const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
 if(hist.length === 0) return;
-
 if(window.currentUser) {
     const guests = parseInt(localStorage.getItem('guests_' + tableId)) || 0;
     const checkin = localStorage.getItem('checkin_' + tableId) || "--:--";
@@ -145,7 +124,6 @@ if(window.currentUser) {
         await deleteDoc(doc(db, "tables", tableId));
     } catch (e) { console.error("Cloud save error:", e); }
 }
-
 localStorage.removeItem('history_'+tableId);
 localStorage.removeItem('guests_'+tableId);
 localStorage.removeItem('checkin_'+tableId);
@@ -153,34 +131,23 @@ renderIndex();
 };
 
 window.getSalesData = async (mode) => {
-const now = new Date();
 const snap = await getDocs(collection(db, "sales"));
 let res = [];
-snap.forEach(d => {
-    let data = d.data(); data.id = d.id;
-    const date = data.timestamp.toDate();
-    if (mode === 'day' && date.toDateString() === now.toDateString()) res.push(data);
-    else if (mode === 'month' && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) res.push(data);
-    else if (mode === 'dow') res.push(data);
-});
+snap.forEach(d => { let data = d.data(); data.id = d.id; res.push(data); });
 return res.sort((a,b) => b.timestamp - a.timestamp);
 };
-
-window.deleteSaleDoc = async (id) => { if(confirm("消去しますか？")) { await deleteDoc(doc(db, "sales", id)); showAdmin('day'); } };
 </script>
 
 <div id="view-index" class="view active"><header><div class="admin-btn" id="admin-btn-label" onclick="checkAdminAuth()">売上管理</div><span>三船 席選択</span><div class="reload-btn" onclick="location.reload()">↻</div></header><div class="grid-tables" id="table-grid"></div></div>
 
 <div id="view-login" class="view">
 <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>認証</span></div></header>
-<div class="login-container"><div style="font-weight:bold; margin-bottom:20px;">オーナーログイン</div><input type="email" id="login-email" class="login-input" placeholder="メールアドレス"><input type="password" id="login-pass" class="login-input" placeholder="パスワード"><button class="btn-large" style="background:var(--primary); color:white; margin-top:20px;" onclick="handleLogin()">ログイン</button></div>
+<div class="login-container"><input type="email" id="login-email" class="login-input" placeholder="メールアドレス"><input type="password" id="login-pass" class="login-input" placeholder="パスワード"><button class="btn-large" style="background:var(--primary); color:white; margin-top:20px;" onclick="handleLogin()">ログイン</button></div>
 </div>
 
 <div id="view-admin" class="view">
 <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>売上管理</span></div><div style="font-size:12px; color:var(--danger);" onclick="logoutOwner()">終了</div></header>
-<div class="admin-nav"><div id="nav-day" class="admin-nav-btn active" onclick="showAdmin('day')">本日</div><div id="nav-dow" class="admin-nav-btn" onclick="showAdmin('dow')">曜日別</div><div id="nav-month" class="admin-nav-btn" onclick="showAdmin('month')">月別</div></div>
-<div id="admin-summary-area" style="padding:15px; background:var(--dark); color:#fff; display:flex; justify-content:space-around; text-align:center; font-size:13px;"><div>合計<br>¥<span id="sum-total" style="font-size:20px; font-weight:bold;">0</span></div></div>
-<div class="report-btns"><button class="btn-report" onclick="printReport('day')">日計印刷</button><button class="btn-report" onclick="printReport('month')" style="background:var(--accent);">月計印刷</button></div>
+<div id="admin-summary-area" style="padding:15px; background:var(--dark); color:#fff; text-align:center;">売上合計: ¥<span id="sum-total">0</span></div>
 <div class="list-container" id="sales-list" style="background:#f4f4f4; padding:5px 0;"></div>
 </div>
 
@@ -193,248 +160,31 @@ window.deleteSaleDoc = async (id) => { if(confirm("消去しますか？")) { aw
 </div>
 
 <div id="view-cart" class="view"><header><span class="back-btn" onclick="exitEditing()">＜</span>カート</header><div class="list-container" id="cart-items-list"></div><button class="btn-large" style="background:var(--primary);color:white;" onclick="sendToKitchen()">本番送信</button></div>
-<div id="view-history" class="view"><header><span class="back-btn" onclick="exitEditing()">＜</span>履歴</header><div class="list-container" id="history-items-list"></div><div class="summary-area" id="history-summary"></div><button class="btn-large" style="background:var(--secondary); color:white;" onclick="showCheckout()">会計へ</button></div>
+<div id="view-history" class="view"><header><span class="back-btn" onclick="exitEditing()">＜</span>履歴</header><div class="list-container" id="history-items-list"></div><div class="summary-area" id="history-summary"></div><div style="background:#fff; border-top:1px solid #ddd; padding-bottom:10px;"><button class="btn-large" style="background:var(--secondary); color:white;" onclick="showCheckout()">会計確定へ</button></div></div>
 <div id="view-checkout" class="view"><header><span class="back-btn" onclick="showOrderHistory()">＜</span>確定</header><div style="flex:1; display:flex; justify-content:center; align-items:center;"><div id="checkout-final-total" style="font-size:48px; font-weight:bold; color:var(--primary);">¥0</div></div><button class="btn-large" style="background:var(--accent);color:white;" onclick="openReceiptChoice()">本番会計</button></div>
 
 <div id="overlay-receipt" class="overlay"><div class="modal"><h3>会計完了</h3><button class="btn-large" style="background:var(--primary); color:white;" onclick="pay(true)">印刷して完了</button><button class="btn-large" style="background:var(--gray); color:white;" onclick="pay(false)">印刷せずに完了</button><p onclick="closeReceiptChoice()" style="color:var(--info); cursor:pointer; margin-top:15px;">キャンセル</p></div></div>
 
 <script>
+// --- 【CSV全206項目 完全固定データ】 ---
 const rawData = [
-    ["お通し", "お通し", 300],
-    ["もつ串", "美唄焼鳥", 150],
-    ["鳥精肉", "美唄焼鳥", 170],
-    ["飲み放題男性90分", "飲み放題", 2280],
-    ["飲み放題女性90分", "飲み放題", 1980],
-    ["飲み放題延長", "飲み放題", 800],
-    ["手羽焼き（2本）", "焼き物", 400],
-    ["国産豚のロース網焼きステーキ", "焼き物", 600],
-    ["ハーフ豚の網焼きステーキ（1枚）", "焼き物", 700],
-    ["ハーフ豚の炙りチャーシュー", "焼き物", 600],
-    ["自家製つくねのコロコロ焼き（4玉）", "焼き物", 400],
-    ["ささみ串焼き（数量限定 1串）", "焼き物", 250],
-    ["鴨肉の網焼き", "焼き物", 600],
-    ["ピリ辛ソーセージ（2本）", "焼き物", 400],
-    ["ラムソーセージ（2本）", "焼き物", 500],
-    ["うずらの玉子（1串）", "焼き物", 150],
-    ["肉厚しいたけ（2個）", "焼き物", 300],
-    ["プチトマト（1串）", "焼き物", 150],
-    ["ズッキーニ（1串）", "焼き物", 150],
-    ["長なす串焼き（1串）", "焼き物", 300],
-    ["軟白ねぎ（1串）", "焼き物", 300],
-    ["ししとう（2串）", "焼き物", 300],
-    ["オリーブオイルにんにくカップ焼き", "焼き物", 500],
-    ["焼きじゃがバター（2個）", "焼き物", 500],
-    ["焼きじゃがバター（塩辛付き）（2個）", "焼き物", 600],
-    ["いももちバター（4個）", "焼き物", 400],
-    ["ささみ串（自家製塩こうじ漬け）", "焼き物", 300],
-    ["ロース網焼きステーキ（自家製塩こうじ漬け）", "焼き物", 750],
-    ["鳥もつ煮込み", "一品料理", 400],
-    ["特製一口ザンギ", "一品料理", 550],
-    ["手羽ザンギ(3本)", "一品料理", 550],
-    ["若鶏の皮竜田揚げ(おろしポン酢付き)", "一品料理", 550],
-    ["ササミカツ(2枚)", "一品料理", 600],
-    ["国産豚のロースカツ", "一品料理", 700],
-    ["コーンバター・チーズカップ", "一品料理", 500],
-    ["生ハムの軟白ねぎ包み(岩塩付き)", "一品料理", 650],
-    ["塩キャベツ", "一品料理", 350],
-    ["漬物", "一品料理", 350],
-    ["枝豆", "一品料理", 350],
-    ["冷奴", "一品料理", 400],
-    ["山わさび冷奴", "一品料理", 400],
-    ["なめこおろし", "一品料理", 400],
-    ["カニみそとうふ", "一品料理", 400],
-    ["チャンジャ", "一品料理", 400],
-    ["イカの塩辛", "一品料理", 400],
-    ["たこわさび", "一品料理", 400],
-    ["ほたてわさび", "一品料理", 400],
-    ["数の子入り松前漬け", "一品料理", 400],
-    ["クジラのベーコン ねぎ正油あえ", "一品料理", 700],
-    ["パンチェッタとメークインの風呂", "オリジナル", 700],
-    ["パンチェッタとコーンの風呂", "オリジナル", 700],
-    ["チャンジャとクリームチーズタパス", "オリジナル", 700],
-    ["ハーブ豚とマッシュルームアヒージョ", "オリジナル", 700],
-    ["砂肝とマッシュルームアヒージョ", "オリジナル", 700],
-    ["タコとマッシュルームアヒージョ", "オリジナル", 700],
-    ["ピリ辛とマッシュルームアヒージョ", "オリジナル", 700],
-    ["バンズ", "オリジナル", 100],
-    ["まぐろ刺し(数量限定)", "刺身・干物", 700],
-    ["とろしめさば", "刺身・干物", 600],
-    ["たこ頭刺し", "刺身・干物", 600],
-    ["馬刺し(赤身)", "刺身・干物", 800],
-    ["馬肉ユッケ", "刺身・干物", 850],
-    ["エイヒレ", "刺身・干物", 400],
-    ["こまい一夜干し", "刺身・干物", 600],
-    ["ししゃも", "刺身・干物", 500],
-    ["鮭とば", "刺身・干物", 500],
-    ["するめいか", "刺身・干物", 450],
-    ["たらこ焼き", "刺身・干物", 450],
-    ["鳥もつ鍋(一人前)", "鍋物", 1400],
-    ["辛鳥もつ鍋(一人前)", "鍋物", 1500],
-    ["鴨鍋(一人前)", "鍋物", 1300],
-    ["湯どうふ(一人前)", "鍋物", 800],
-    ["【追加】単品野菜", "鍋物", 500],
-    ["【追加】単品もつ類", "鍋物", 800],
-    ["【追加】雑炊セット", "鍋物", 350],
-    ["【追加】単品そば", "鍋物", 300],
-    ["冷しトマト", "サラダ・ご飯", 400],
-    ["オリジナルサラダ", "サラダ・ご飯", 600],
-    ["ツナサラダ", "サラダ・ご飯", 700],
-    ["生ハムサラダ", "サラダ・ご飯", 800],
-    ["もずく酢", "サラダ・ご飯", 350],
-    ["ピクルスの盛り合わせ", "サラダ・ご飯", 550],
-    ["美唄名物とりめし", "サラダ・ご飯", 400],
-    ["やきとり丼ぶり", "サラダ・ご飯", 650],
-    ["もつ煮込み丼ぶり", "サラダ・ご飯", 650],
-    ["炙りチャーシュー丼ぶり", "サラダ・ご飯", 700],
-    ["三船特製オムライス", "サラダ・ご飯", 700],
-    ["山わさび丼ぶり", "サラダ・ご飯", 400],
-    ["ライス(小)", "サラダ・ご飯", 200],
-    ["ライス(大)", "サラダ・ご飯", 300],
-    ["三船名物鳥がらそば", "麺類・スープ", 450],
-    ["三船特製ラーメン(正油のみ)", "麺類・スープ", 750],
-    ["三船特製チャーシューメン", "麺類・スープ", 900],
-    ["バターコーンラーメン", "麺類・スープ", 900],
-    ["もつそば(温)", "麺類・スープ", 600],
-    ["もつせいろそば(冷)", "麺類・スープ", 600],
-    ["鳥せいろそば(冷)", "麺類・スープ", 600],
-    ["かしわそば(温)", "麺類・スープ", 600],
-    ["冷むぎ(夏期)", "麺類・スープ", 500],
-    ["スープ(玉子・わかめ)", "麺類・スープ", 300],
-    ["スーパードライ 〈小〉", "ビール・他", 500],
-    ["スーパードライ 〈中〉", "ビール・他", 600],
-    ["スーパードライ 〈大〉", "ビール・他", 700],
-    ["アサヒ マルエフ 〈中瓶〉", "ビール・他", 700],
-    ["ラガー 〈中瓶〉", "ビール・他", 700],
-    ["ホッピー セット〈白・黒〉", "ビール・他", 600],
-    ["ホッピーの焼酎のみ", "ビール・他", 300],
-    ["アサヒドライゼロ 〈中瓶〉", "ビール・他", 500],
-    ["プレーンサワー", "サワー", 500],
-    ["レモンサワー", "サワー", 500],
-    ["ライムサワー", "サワー", 500],
-    ["カシスサワー", "サワー", 500],
-    ["梅サワー", "サワー", 500],
-    ["グレープフルーツサワー", "サワー", 500],
-    ["ぶどうサワー", "サワー", 500],
-    ["青りんごサワー", "サワー", 500],
-    ["カルピスサワー", "サワー", 500],
-    ["シークァーサーサワー", "サワー", 500],
-    ["ウーロンハイ", "サワー", 500],
-    ["緑茶ハイ", "サワー", 500],
-
-    ["コーヒー酎ハイ", "サワー", 500],
-    ["生レモンサワー", "サワー", 600],
-    ["生グレープフルーツサワー", "サワー", 600],
-    ["グラスワイン（赤）", "ワイン", 500],
-    ["グラスワイン（白）", "ワイン", 500],
-    ["焼酎（ロック・水割り）", "焼酎", 500],
-    ["㐂六（きろく） 〈宮崎・芋〉", "焼酎", 700],
-    ["山ねこ 〈宮崎・芋〉", "焼酎", 700],
-    ["山せみ 〈宮崎・米〉", "焼酎", 700],
-    ["山猿 〈宮崎・麦〉", "焼酎", 700],
-    ["中々 〈宮崎・麦〉", "焼酎", 700],
-    ["黒霧島 〈宮崎・芋〉", "焼酎", 700],
-    ["海 〈鹿児島・芋〉", "焼酎", 700],
-    ["くじら 〈鹿児島・芋〉", "焼酎", 700],
-    ["よろしく千萬あるべし 〈新潟・米〉", "焼酎", 700],
-    ["ニッカ・ザ・麦焼酎 〈福岡・麦〉", "焼酎", 700],
-    ["金黒 〈福岡・芋〉", "焼酎", 700],
-    ["カシスソーダ", "カクテル", 550],
-    ["カシスウーロン", "カクテル", 550],
-    ["カシスオレンジ", "カクテル", 550],
-    ["カシスグレープフルーツ", "カクテル", 550],
-    ["カンパリオレンジ", "カクテル", 550],
-    ["カンパリソーダ", "カクテル", 550],
-    ["カンパリトニック", "カクテル", 550],
-    ["ジントニック", "カクテル", 550],
-    ["ジンライム", "カクテル", 550],
-    ["ラムコーク", "カクテル", 550],
-    ["ワインクーラー", "カクテル", 550],
-    ["クーニャン", "カクテル", 550],
-    ["ファジーネーブル", "カクテル", 550],
-    ["シャンディガフ", "カクテル", 550],
-    ["レッドアイ", "カクテル", 550],
-    ["ブラッディメアリー", "カクテル", 550],
-    ["スクリュードライバー", "カクテル", 550],
-    ["ブルドック", "カクテル", 550],
-    ["モスコミュール", "カクテル", 550],
-    ["ウーロン茶", "ソフトドリンク", 350],
-    ["ほうじ茶", "ソフトドリンク", 350],
-    ["コーラ", "ソフトドリンク", 350],
-    ["オレンジジュース", "ソフトドリンク", 350],
-    ["グレープフルーツジュース", "ソフトドリンク", 350],
-    ["カルピス", "ソフトドリンク", 350],
-    ["カルピスソーダ", "ソフトドリンク", 350],
-    ["トマトジュース", "ソフトドリンク", 350],
-    ["アイスコーヒー", "ソフトドリンク", 350],
-    ["緑茶", "ソフトドリンク", 350],
-    ["ジンジャーエール", "ソフトドリンク", 350],
-    ["アイスクリーム（バニラ）", "デザート", 350],
-    ["コーラフロート", "デザート", 600],
-    ["コーヒーフロート", "デザート", 600],
-    ["二世古（特別純米新酒しぼり）", "日本酒", 850],
-    ["繁桝（特別純米生々）", "日本酒", 900],
-    ["福司（純米酒）", "日本酒", 850],
-    ["まる田（特別純米）", "日本酒", 900],
-    ["男山（純米生酒）", "日本酒", 900],
-    ["獺祭（純米大吟醸）", "日本酒", 900],
-    ["十一州（吟醸しぼりたて）", "日本酒", 900],
-    ["久保田（清酒）", "日本酒", 850],
-    ["一ノ蔵（本醸造辛口）", "日本酒", 800],
-    ["ばくれん（吟醸超辛口）", "日本酒", 800],
-    ["くどき上手（純米吟醸辛口）", "日本酒", 900],
-    ["北の勝（清酒）", "日本酒", 800],
-    ["越後で候（しぼりたて生原酒）", "日本酒", 900],
-    ["李白（特別純米酒）", "日本酒", 850],
-    ["常山（とびっきり辛口）", "日本酒", 900],
-    ["開運（無濾過純米酒）", "日本酒", 900],
-    ["大和しずく（純米吟醸）", "日本酒", 900],
-    ["越乃寒梅（清酒）", "日本酒", 800],
-    ["八海山（清酒）", "日本酒", 800],
-    ["もつ串持帰", "テイクアウト", 150],
-    ["精肉持帰", "テイクアウト", 170],
-    ["もつ煮持帰", "テイクアウト", 300],
-    ["もつ串10本", "無人", 1000],
-    ["精肉10本", "無人", 1000],
-    ["MIX10本", "無人", 1000],
-    ["弁当A", "無人", 1000],
-    ["弁当B", "無人", 1000],
-    ["サッポロ クラシック 〈小瓶〉", "ビール・他", 500],
-    ["サッポロ クラシック 〈中瓶〉", "ビール・他", 600],
-    ["ノンアルコールビール", "ビール・他", 450],
-    ["角ハイボール", "ハイボール", 500],
-    ["ジムビームハイボール", "ハイボール", 450],
-    ["コカ・コーラハイボール", "ハイボール", 550],
-    ["ジンジャーハイボール", "ハイボール", 550],
-    ["メガ角ハイボール", "ハイボール", 900],
-    ["翠ジンソーダ", "ハイボール", 500],
-    ["本格 芋焼酎", "焼酎", 600],
-    ["本格 麦焼酎", "焼酎", 550],
-    ["黒丸 〈芋〉", "焼酎", 650],
-    ["一刻者 〈芋〉", "焼酎", 700],
-    ["知心剣 〈麦〉", "焼酎", 600],
-    ["佐藤 黒 〈芋〉", "焼酎", 850],
-    ["佐藤 白 〈芋〉", "焼酎", 800],
-    ["佐藤 麦", "焼酎", 750],
-    ["赤霧島 〈芋〉", "焼酎", 650],
-    ["魔王 〈芋〉", "焼酎", 1200],
-    ["村尾 〈芋〉", "焼酎", 1100],
-    ["森伊蔵 〈芋〉", "焼酎", 1500],
-    ["鍛高譚 〈しそ〉", "焼酎", 550],
-    ["ウーロン茶", "ソフトドリンク", 350],
-    ["コーラ", "ソフトドリンク", 350],
-    ["ジンジャーエール", "ソフトドリンク", 350],
-    ["オレンジ100%", "ソフトドリンク", 350],
-    ["グレープフルーツ100%", "ソフトドリンク", 350],
-    ["トマトジュース", "ソフトドリンク", 400],
-    ["緑茶", "ソフトドリンク", 350],
-    ["炭酸水", "ソフトドリンク", 200]
+    ["お通し", "全メニュー", 300], ["もつ串", "美唄焼鳥", 150], ["鳥精肉", "美唄焼鳥", 170], ["飲み放題男", "飲み放題", 2280], ["飲み放題女", "飲み放題", 1980], ["飲み放題延長", "飲み放題", 800], ["手羽焼き（2本）", "焼き物", 400], ["国産豚のロース網焼きステーキ", "焼き物", 600], ["ハーフ豚の網焼きステーキ（1枚）", "焼き物", 700], ["ハーフ豚の炙りチャーシュー", "焼き物", 600], ["自家製つくねのコロコロ焼き（4玉）", "焼き物", 400], ["ささみ串焼き（数量限定 1串）", "焼き物", 250], ["鴨肉の網焼き", "焼き物", 600], ["ピリ辛ソーセージ（2本）", "焼き物", 400], ["ラムソーセージ（2本）", "焼き物", 500], ["うずらの玉子（1串）", "焼き物", 150], ["肉厚しいたけ（2個）", "焼き物", 300], ["プチトマト（1串）", "焼き物", 150], ["ズッキーニ（1串）", "焼き物", 150], ["長なす串焼き（1串）", "焼き物", 300], ["軟白ねぎ（1串）", "焼き物", 300], ["ししとう（2串）", "焼き物", 300], ["オリーブオイルにんにくカップ焼き", "焼き物", 500], ["焼きじゃがバター（2個）", "焼き物", 500], ["焼きじゃがバター（塩辛付き）（2個）", "焼き物", 600], ["いももちバター（4個）", "焼き物", 400], ["ささみ串（自家製塩こうじ漬け）", "塩こうじ漬け", 300], ["国産豚のロース網焼きステーキ（自家製塩こうじ漬け）", "塩こうじ漬け", 750], ["鳥もつ煮込み", "一品料理", 400], ["特製一口ザンギ", "一品料理", 550], ["手羽ザンギ(3本)", "一品料理", 550], ["若鶏の皮竜田揚げ(おろしポン酢付き)", "一品料理", 550], ["ササミカツ(2枚)", "一品料理", 600], ["国産豚のロースカツ", "一品料理", 700], ["コーンバター・チーズカップ", "一品料理", 500], ["生ハムの軟白ねぎ包み(岩塩付き)", "一品料理", 650], ["塩キャベツ", "一品料理", 350], ["漬物", "一品料理", 350], ["枝豆", "一品料理", 350], ["冷奴", "一品料理", 400], ["山わさび冷奴", "一品料理", 400], ["なめこおろし", "一品料理", 400], ["カニみそとうふ", "一品料理", 400], ["チャンジャ", "一品料理", 400], ["イカの塩辛", "一品料理", 400], ["たこわさび", "一品料理", 400], ["ほたてわさび", "一品料理", 400], ["数の子入り松前漬け", "一品料理", 400], ["クジラのベーコン ねぎ正油あえ", "一品料理", 700], ["自家製パンチェッタとメークインの熱湯風呂", "オリジナル", 700], ["自家製パンチェッタとコーンの熱湯風呂", "オリジナル", 700], ["チャンジャとクリームチーズのタパス", "オリジナル", 700], ["ハーブ豚チャーシューとマッシュルームのアヒージョ", "オリジナル", 700], ["砂肝とマッシュルームのアヒージョ", "オリジナル", 700], ["タコとマッシュルームのアヒージョ", "オリジナル", 700], ["ピリ辛ソーセージとマッシュルームのアヒージョ", "オリジナル", 700], ["バンズ", "オリジナル", 100], ["まぐろ刺し(数量限定)", "刺身・干物", 700], ["とろしめさば", "刺身・干物", 600], ["たこ頭刺し", "刺身・干物", 600], ["馬刺し(赤身)", "刺身・干物", 800], ["馬肉ユッケ", "刺身・干物", 850], ["エイヒレ", "刺身・干物", 400], ["こまい一夜干し", "刺身・干物", 600], ["ししゃも", "刺身・干物", 500], ["鮭とば", "刺身・干物", 500], ["するめいか", "刺身・干物", 450], ["たらこ焼き", "刺身・干物", 450], ["鳥もつ鍋(一人前)", "鍋物", 1400], ["辛鳥もつ鍋(一人前)", "鍋物", 1500], ["鴨鍋(一人前)", "鍋物", 1300], ["湯どうふ(一人前)", "鍋物", 800], ["【追加】単品野菜", "鍋物", 500], ["【追加】単品もつ類", "鍋物", 800], ["【追加】雑炊セット", "鍋物", 350], ["【追加】単品そば", "鍋物", 300], ["冷しトマト", "サラダ・ご飯", 400], ["オリジナルサラダ", "サラダ・ご飯", 600], ["ツナサラダ", "サラダ・ご飯", 700], ["生ハムサラダ", "サラダ・ご飯", 800], ["もずく酢", "サラダ・ご飯", 350], ["ピクルスの盛り合わせ", "サラダ・ご飯", 550], ["美唄名物とりめし", "サラダ・ご飯", 400], ["やきとり丼ぶり", "サラダ・ご飯", 650], ["もつ煮込み丼ぶり", "サラダ・ご飯", 650], ["炙りチャーシュー丼ぶり", "サラダ・ご飯", 700], ["三船特製オムライス", "サラダ・ご飯", 700], ["山わさび丼ぶり", "サラダ・ご飯", 400], ["ライス(小)", "サラダ・ご飯", 200], ["ライス(大)", "サラダ・ご飯", 300], ["三船名物鳥がらそば", "麺類・スープ", 450], ["三船特製ラーメン(正油味のみ)", "麺類・スープ", 750], ["三船特製チャーシューメン", "麺類・スープ", 900], ["バターコーンラーメン", "麺類・スープ", 900], ["もつそば(温)", "麺類・スープ", 600], ["もつせいろそば(冷)", "麺類・スープ", 600], ["鳥せいろそば(冷)", "麺類・スープ", 600], ["かしわそば(温)", "麺類・スープ", 600], ["冷むぎ(夏期)", "麺類・スープ", 500], ["スープ(玉子・わかめ)", "麺類・スープ", 300], ["アサヒ スーパードライ 〈小〉", "ビール・他", 500], ["アサヒ スーパードライ 〈中〉", "ビール・他", 600], ["アサヒ スーパードライ 〈大〉", "ビール・他", 700], ["アサヒ マルエフ 〈中瓶〉", "ビール・他", 700], ["ラガー 〈中瓶〉", "ビール・他", 700], ["ホッピー セット〈白・黒〉", "ビール・他", 600], ["ホッピーの焼酎のみ", "ビール・他", 300], ["アサヒドライゼロ 〈中瓶〉", "ビール・他", 500], ["プレーンサワー", "サワー", 500], ["レモンサワー", "サワー", 500], ["ライムサワー", "サワー", 500], ["カシスサワー", "サワー", 500], ["梅サワー", "サワー", 500], ["グレープフルーツサワー", "サワー", 500], ["ぶどうサワー", "サワー", 500], ["青りんごサワー", "サワー", 500], ["カルピスサワー", "サワー", 500], ["シークァーサーサワー", "サワー", 500], ["ウーロンハイ", "サワー", 500], ["緑茶ハイ", "サワー", 500], ["コーヒー酎ハイ", "サワー", 500], ["生レモンサワー", "サワー", 600], ["生グレープフルーツサワー", "サワー", 600], ["グラスワイン（赤）", "ワイン", 500], ["グラスワイン（白）", "ワイン", 500], ["焼酎（ロック・水割り）", "焼酎", 500], ["㐂六（きろく） 〈宮崎・芋〉", "焼酎", 700], ["山ねこ 〈宮崎・芋〉", "焼酎", 700], ["山せみ 〈宮崎・米〉", "焼酎", 700], ["山猿 〈宮崎・麦〉", "焼酎", 700], ["中々 〈宮崎・麦〉", "焼酎", 700], ["黒霧島 〈宮崎・芋〉", "焼酎", 700], ["海 〈鹿児島・芋〉", "焼酎", 700], ["くじら 〈鹿児島・芋〉", "焼酎", 700], ["よろしく千萬あるべし 〈新潟・米〉", "焼酎", 700], ["ニッカ・ザ・麦焼酎 〈福岡・麦〉", "焼酎", 700], ["金黒 〈福岡・芋〉", "焼酎", 700], ["カシスソーダ", "カクテル", 550], ["カシスウーロン", "カクテル", 550], ["カシスオレンジ", "カクテル", 550], ["カシスグレープフルーツ", "カクテル", 550], ["カンパリオレンジ", "カクテル", 550], ["カンパリソーダ", "カクテル", 550], ["カンパリトニック", "カクテル", 550], ["ジントニック", "カクテル", 550], ["ジンライム", "カクテル", 550], ["ラムコーク", "カクテル", 550], ["ワインクーラー", "カクテル", 550], ["クーニャン", "カクテル", 550], ["ファジーネーブル", "カクテル", 550], ["シャンディガフ", "カクテル", 550], ["レッドアイ", "カクテル", 550], ["ブラッディメアリー", "カクテル", 550], ["スクリュードライバー", "カクテル", 550], ["ブルドック", "カクテル", 550], ["モスコミュール", "カクテル", 550], ["ウーロン茶", "ソフトドリンク", 350], ["ほうじ茶", "ソフトドリンク", 350], ["コーラ", "ソフトドリンク", 350], ["オレンジジュース", "ソフトドリンク", 350], ["グレープフルーツジュース", "ソフトドリンク", 350], ["カルピス", "ソフトドリンク", 350], ["カルピスソーダ", "ソフトドリンク", 350], ["トマトジュース", "ソフトドリンク", 350], ["アイスコーヒー", "ソフトドリンク", 350], ["緑茶", "ソフトドリンク", 350], ["ジンジャーエール", "ソフトドリンク", 350], ["アイスクリーム（バニラ）", "デザート", 350], ["コーラフロート", "デザート", 600], ["コーヒーフロート", "デザート", 600], ["二世古（特別純米新酒しぼり）", "日本酒", 850], ["繁桝（特別純米生々）", "日本酒", 900], ["福司（純米酒）", "日本酒", 850], ["まる田（特別純米）", "日本酒", 900], ["男山（純米生酒）", "日本酒", 900], ["獺祭（純米大吟醸）", "日本酒", 900], ["十一州（吟醸しぼりたて）", "日本酒", 900], ["久保田（清酒）", "日本酒", 850], ["一ノ蔵（本醸造辛口）", "日本酒", 800], ["ばくれん（吟醸超辛口）", "日本酒", 800], ["くどき上手（純米吟醸辛口）", "日本酒", 900], ["北の勝（清酒）", "日本酒", 800], ["越後で候（しぼりたて生原酒）", "日本酒", 900], ["李白（特別純米酒）", "日本酒", 850], ["常山（とびっきり辛口）", "日本酒", 900], ["開運（無濾過純米酒）", "日本酒", 900], ["大和しずく（純米吟醸）", "日本酒", 900], ["越乃寒梅（清酒）", "日本酒", 800], ["八海山（清酒）", "日本酒", 800], ["もつ串持帰", "テイクアウト", 150], ["精肉持帰", "テイクアウト", 170], ["もつ煮持帰", "テイクアウト", 300], ["もつ串10本", "無人", 1000], ["精肉10本", "無人", 1000], ["MIX10本", "無人", 1000], ["弁当A", "無人", 1000], ["弁当B", "無人", 1000], ["サッポロ クラシック 〈小瓶〉", "ビール・他", 500], ["サッポロ クラシック 〈中瓶〉", "ビール・他", 600], ["ノンアルコールビール", "ビール・他", 450], ["角ハイボール", "ハイボール", 500], ["ジムビームハイボール", "ハイボール", 450], ["コカ・コーラハイボール", "ハイボール", 550], ["ジンジャーハイボール", "ハイボール", 550], ["メガ角ハイボール", "ハイボール", 900], ["翠ジンソーダ", "ハイボール", 500], ["本格 芋焼酎", "焼酎", 600], ["本格 麦焼酎", "焼酎", 550], ["黒丸 〈芋〉", "焼酎", 650], ["一刻者 〈芋〉", "焼酎", 700], ["知心剣 〈麦〉", "焼酎", 600], ["佐藤 黒 〈芋〉", "焼酎", 850], ["佐藤 白 〈芋〉", "焼酎", 800], ["佐藤 麦", "焼酎", 750], ["赤霧島 〈芋〉", "焼酎", 650], ["魔王 〈芋〉", "焼酎", 1200], ["村尾 〈芋〉", "焼酎", 1100], ["森伊蔵 〈芋〉", "焼酎", 1500], ["鍛高譚 〈しそ〉", "焼酎", 550], ["炭酸水", "ソフトドリンク", 200]
 ];
 
-const menuData = []; const allCat = { cat: "全メニュー", items: [] }; rawData.forEach(r => { allCat.items.push({n: r[0], p: r[2], c: r[1]}); let c = menuData.find(x => x.cat === r[1]); if(!c) { c = {cat: r[1], items: []}; menuData.push(c); } c.items.push({n: r[0], p: r[2]}); }); menuData.unshift(allCat);
+const menuData = [];
+const allCat = { cat: "全メニュー", items: [] };
+
+rawData.forEach(r => {
+    allCat.items.push({n: r[0], p: r[2], c: r[1]});
+    let c = menuData.find(x => x.cat === r[1]);
+    if(!c && r[1] !== "全メニュー") { c = {cat: r[1], items: []}; menuData.push(c); }
+    if(c) c.items.push({n: r[0], p: r[2]});
+});
+menuData.unshift(allCat);
+
 const tablesL = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
 let currentTable = "", currentCart = [], tempGuestCount = "0";
 const PRINTER_URL = 'http://192.168.1.XX/StarWebPRNT/SendMessage';
-const isTestMode = true;
 
 function hideAll() { document.querySelectorAll('.view').forEach(v => v.style.display = 'none'); }
 function renderIndex() { const g = document.getElementById('table-grid'); if(!g) return; g.innerHTML = tablesL.map(t => { const h = JSON.parse(localStorage.getItem('history_'+t) || '[]'); const total = h.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); return `<div class="table-btn ${total>0?'occupied':''}" onclick="onTableClick('${t}')"><b>${t}</b><span class="price-badge">${total>0?'¥'+total.toLocaleString():'空席'}</span></div>`; }).join(''); }
@@ -443,113 +193,94 @@ function checkAdminAuth() { if(window.currentUser) showAdmin('day'); else { hide
 function handleLogin() { window.loginOwner(document.getElementById('login-email').value, document.getElementById('login-pass').value); }
 function onTableClick(tId) { currentTable = tId; if(localStorage.getItem('history_' + tId)) showMenu(); else showGuestInput(); }
 
-async function showAdmin(mode) {
-hideAll(); document.getElementById('view-admin').style.display = 'flex';
-document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
-const navId = mode==='month'?'month':mode==='dow'?'dow':'day';
-document.getElementById('nav-' + navId).classList.add('active');
-const list = document.getElementById('sales-list'); list.innerHTML = '<p style="text-align:center; padding:50px;">集計中...</p>';
-try {
-const sales = await window.getSalesData(mode);
-let total = 0, guests = 0;
-
-if (mode === 'day') {
-list.innerHTML = sales.map(s => {
-total += s.total; guests += s.guests;
-return `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.checkout}</span><span class="sale-table-badge">${s.tableId}番</span></div><div class="sale-detail-info">客: ${s.guests}名 / 入店: ${s.checkin}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.total.toLocaleString()}</span><button class="btn-del-sale" onclick="deleteSaleDoc('${s.id}')">削除</button></div></div>`;
-}).join('') || '<p style="text-align:center; padding:50px;">本日データなし</p>';
-} else if (mode === 'dow') {
-const labels = ['日','月','火','水','木','金','土'];
-let stats = [0,1,2,3,4,5,6].map(i=>({l:labels[i], t:0, c:0, g:0}));
-sales.forEach(s => { const dow = s.timestamp.toDate().getDay(); stats[dow].t += s.total; stats[dow].c++; stats[dow].g += s.guests; total += s.total; guests += s.guests; });
-list.innerHTML = stats.map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.l}曜日</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span></div></div>`).join('');
-} else if (mode === 'month') {
-let mStats = Array(12).fill(0).map((_,i)=>({l:(i+1)+'月', t:0, c:0, g:0}));
-sales.forEach(s => { const m = s.timestamp.toDate().getMonth(); mStats[m].t += s.total; mStats[m].c++; mStats[m].g += s.guests; total += s.total; guests += s.guests; });
-list.innerHTML = mStats.filter(s=>s.c>0).reverse().map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.l}</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span></div></div>`).join('');
-}
-document.getElementById('sum-total').innerText = total.toLocaleString();
-document.getElementById('sum-guests').innerText = guests;
-document.getElementById('sum-count').innerText = sales.length;
-} catch(e) { list.innerHTML = `<p style="color:red; padding:20px;">エラー: ${e.message}</p>`; }
-}
-
-async function printReport(mode) {
-const sales = await window.getSalesData(mode); if(sales.length === 0) return alert("データなし");
-let total = 0, guests = 0; sales.forEach(s => total += s.total);
-const b = new StarWebPrintBuilder(); let r = b.createInitializationElement();
-r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n【${mode==='day'?'日計':'月計'}】\n`, width:2, height:2});
-r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `--------------------------------\n売上: ¥${total.toLocaleString()}\n客数: ${guests}名\n件数: ${sales.length}件\n--------------------------------\n`});
-r += b.createCutPaperElement({type: 'partial'});
-const t = new StarWebPrintTrader({url: PRINTER_URL}); t.sendMessage({request: r}); alert("印刷しました");
-}
-
-function showGuestInput() { hideAll(); tempGuestCount = "0"; document.getElementById('guest-table-name').innerText = currentTable + "番席"; document.getElementById('guest-count-val').innerText = tempGuestCount; document.getElementById('view-guest').style.display = 'flex'; const k = document.getElementById('guest-keypad'); k.innerHTML = [1,2,3,4,5,6,7,8,9,'C',0,'決定'].map(num => { let s = num === '決定' ? 'background:var(--accent); color:#fff;' : ''; let f = num === '決定' ? 'confirmGuestCount()' : (num === 'C' ? 'clearGuestNum()' : `inputGuestNum(${num})`); return `<button class="key-btn" style="${s}" onclick="${f}">${num}</button>`; }).join(''); }
+function showGuestInput() { hideAll(); tempGuestCount = "0"; document.getElementById('guest-table-name').innerText = currentTable + "番席"; document.getElementById('guest-count-val').innerText = tempGuestCount; document.getElementById('view-guest').style.display = 'flex'; const k = document.getElementById('guest-keypad'); k.innerHTML = [1,2,3,4,5,6,7,8,9,'C',0,'決定'].map(num => `<button class="key-btn" onclick="${num === '決定' ? 'confirmGuestCount()' : (num === 'C' ? 'clearGuestNum()' : `inputGuestNum(${num})`)}">${num}</button>`).join(''); }
 function inputGuestNum(n) { if(tempGuestCount === "0") tempGuestCount = n.toString(); else if(tempGuestCount.length < 2) tempGuestCount += n.toString(); document.getElementById('guest-count-val').innerText = tempGuestCount; }
 function clearGuestNum() { tempGuestCount = "0"; document.getElementById('guest-count-val').innerText = tempGuestCount; }
-async function confirmGuestCount() { let c = parseInt(tempGuestCount); if(c < 1) return alert("人数を入力してください"); localStorage.setItem('guests_' + currentTable, c); const now = new Date(); localStorage.setItem('checkin_' + currentTable, now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0')); if(window.cloudSync) await window.cloudSync(currentTable); showMenu(); }
-function showMenu() { window.isEditing = false; currentCart = JSON.parse(localStorage.getItem('cart_'+currentTable) || '[]'); hideAll(); document.getElementById('view-menu').style.display = 'flex'; document.getElementById('display-table-id').innerText = currentTable; document.getElementById('display-guest-count').innerText = localStorage.getItem('guests_' + currentTable) || "0"; document.getElementById('display-checkin-time').innerText = localStorage.getItem('checkin_' + currentTable) || "--:--"; renderSidebar(); renderItems(menuData[0]); updateFooter(); }
-function renderSidebar() { const side = document.getElementById('side-cats'); side.innerHTML = menuData.map((d, idx) => `<div class="cat" onclick="changeCat(this, ${idx})">${d.cat}</div>`).join(''); side.children[0].classList.add('active'); }
-function changeCat(el, idx) { document.querySelectorAll('.cat').forEach(c => c.classList.remove('active')); el.classList.add('active'); renderItems(menuData[idx]); }
-function renderItems(category) { const container = document.getElementById('display-items'); container.innerHTML = category.items.map((item, idx) => { const rate = (category.cat === "テイクアウト" || category.cat === "無人" || item.c === "テイクアウト" || item.c === "無人") ? 0.08 : 0.10; const taxInc = Math.floor(item.p * (1 + rate)); return `<div class="item-card"><div class="item-info"><span class="item-name">${item.n}</span><span class="item-price">¥${item.p.toLocaleString()} <small style="font-size:10px; color:#999;">(税込¥${taxInc.toLocaleString()})</small></span></div><div class="qty-ctrl"><div class="btn-circle" onclick="changeQty('q${idx}', -1)">-</div><span id="q${idx}" style="font-weight:bold; min-width:18px; text-align:center;">1</span><div class="btn-circle" onclick="changeQty('q${idx}', 1)">+</div><button class="btn-add" onclick="addToCart('${item.n}', ${item.p}, 'q${idx}', ${rate})">追加</button></div></div>`; }).join(''); }
+async function confirmGuestCount() { let c = parseInt(tempGuestCount); if(c < 1) return alert("人数入力してください"); localStorage.setItem('guests_' + currentTable, c); const now = new Date(); localStorage.setItem('checkin_' + currentTable, now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0')); if(window.cloudSync) await window.cloudSync(currentTable); showMenu(); }
+
+function showMenu() { 
+    window.isEditing = false; 
+    currentCart = JSON.parse(localStorage.getItem('cart_'+currentTable) || '[]'); 
+    hideAll(); document.getElementById('view-menu').style.display = 'flex'; 
+    document.getElementById('display-table-id').innerText = currentTable;
+    document.getElementById('display-guest-count').innerText = localStorage.getItem('guests_' + currentTable) || "0";
+    renderSidebar(); 
+    // ★重要：サイドバーの状態に合わせて初期化
+    const firstCat = document.querySelector('.cat');
+    if(firstCat) changeCat(firstCat, 0); 
+    updateFooter(); 
+}
+
+function renderSidebar() { 
+    const side = document.getElementById('side-cats'); 
+    side.innerHTML = menuData.map((d, idx) => `<div class="cat" onclick="changeCat(this, ${idx})">${d.cat}</div>`).join(''); 
+}
+
+function changeCat(el, idx) { 
+    document.querySelectorAll('.cat').forEach(c => c.classList.remove('active')); 
+    el.classList.add('active'); 
+    renderItems(menuData[idx]); 
+}
+
+function renderItems(category) { 
+    const container = document.getElementById('display-items'); 
+    container.innerHTML = category.items.map((item, idx) => { 
+        const rate = (category.cat === "テイクアウト" || category.cat === "無人" || item.c === "テイクアウト" || item.c === "無人") ? 0.08 : 0.10; 
+        const taxInc = Math.floor(item.p * (1 + rate)); 
+        return `<div class="item-card"><div class="item-info"><span class="item-name">${item.n}</span><span class="item-price">¥${item.p.toLocaleString()} <small style="font-size:10px;">(税込¥${taxInc.toLocaleString()})</small></span></div><div class="qty-ctrl"><div class="btn-circle" onclick="changeQty('q${idx}', -1)">-</div><span id="q${idx}" style="font-weight:bold; min-width:18px; text-align:center;">1</span><div class="btn-circle" onclick="changeQty('q${idx}', 1)">+</div><button class="btn-add" onclick="addToCart('${item.n}', ${item.p}, 'q${idx}', ${rate})">追加</button></div></div>`; 
+    }).join(''); 
+}
+
 function changeQty(id, d) { const el = document.getElementById(id); let v = parseInt(el.innerText) + d; if(v >= 1) el.innerText = v; }
 function addToCart(name, price, qId, rate) { const qty = parseInt(document.getElementById(qId).innerText); const exist = currentCart.find(i => i.name === name); if(exist) exist.qty += qty; else currentCart.push({name, price, qty, rate}); localStorage.setItem('cart_'+currentTable, JSON.stringify(currentCart)); updateFooter(); document.getElementById(qId).innerText = 1; }
 function changeCartQty(idx, delta) { currentCart[idx].qty += delta; if(currentCart[idx].qty < 1) currentCart[idx].qty = 1; localStorage.setItem('cart_'+currentTable, JSON.stringify(currentCart)); renderCartUI(); updateFooter(); }
-function removeFromCart(idx) { currentCart.splice(idx, 1); localStorage.setItem('cart_'+currentTable, JSON.stringify(currentCart)); renderCartUI(); updateFooter(); }
-function renderCartUI() { document.getElementById('cart-items-list').innerHTML = currentCart.map((i, idx) => `<div class="list-row"><div style="flex:1;"><b>${i.name}</b><br><small>¥${i.price.toLocaleString()} x ${i.qty}</small></div><div style="display:flex; align-items:center; gap:8px;"><div class="btn-circle" onclick="changeCartQty(${idx}, -1)">-</div><span style="font-weight:bold;">${i.qty}</span><div class="btn-circle" onclick="changeCartQty(${idx}, 1)">+</div><button class="btn-del" onclick="removeFromCart(${idx})">削除</button></div></div>`).join('') || '<p style="text-align:center;padding:50px;color:#999;">カートは空です</p>'; }
+function removeFromCart(idx) { currentCart.splice(idx, 1); localStorage.setItem('cart_'+currentCart, JSON.stringify(currentCart)); renderCartUI(); updateFooter(); }
+function renderCartUI() { document.getElementById('cart-items-list').innerHTML = currentCart.map((i, idx) => `<div class="list-row"><div style="flex:1;"><b>${i.name}</b><br><small>¥${i.price.toLocaleString()} x ${i.qty}</small></div><div style="display:flex; align-items:center; gap:8px;"><div class="btn-circle" onclick="changeCartQty(${idx}, -1)">-</div><span style="font-weight:bold;">${i.qty}</span><div class="btn-circle" onclick="changeCartQty(${idx}, 1)">+</div><button style="color:red;" onclick="currentCart.splice(${idx}, 1); renderCartUI(); updateFooter();">削除</button></div></div>`).join('') || '空です'; }
 function showCart() { window.isEditing = true; hideAll(); document.getElementById('view-cart').style.display = 'flex'; renderCartUI(); }
+function showOrderHistory() { window.isEditing = true; hideAll(); document.getElementById('view-history').style.display = 'flex'; renderHistoryUI(); }
+function renderHistoryUI() { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); let sub = 0, tax = 0; document.getElementById('history-items-list').innerHTML = hist.map((i, idx) => { const lp = i.price * i.qty; const lt = Math.floor(lp * i.rate); sub += lp; tax += lt; return `<div class="list-row"><div><b>${i.name}</b><br><small>税込¥${(lp+lt).toLocaleString()}</small></div><div style="display:flex; align-items:center; gap:10px;"><div class="btn-circle" onclick="changeHistoryQty(${idx}, -1)">-</div><span style="font-weight:bold;">${i.qty}</span><div class="btn-circle" onclick="changeHistoryQty(${idx}, 1)">+</div></div></div>`; }).join('') || 'なし'; document.getElementById('history-summary').innerHTML = `税込計: <b style="font-size:24px; color:var(--primary);">¥${(sub + tax).toLocaleString()}</b>`; }
 function changeHistoryQty(idx, delta) { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); hist[idx].qty += delta; if(hist[idx].qty <= 0) { if(!confirm("削除？")) return; hist.splice(idx, 1); } localStorage.setItem('history_'+currentTable, JSON.stringify(hist)); renderHistoryUI(); }
-function renderHistoryUI() { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); let sub = 0, tax = 0; document.getElementById('history-items-list').innerHTML = hist.map((i, idx) => { const lp = i.price * i.qty; const lt = Math.floor(lp * i.rate); sub += lp; tax += lt; return `<div class="list-row"><div><b>${i.name}</b><br><small>税込¥${(lp+lt).toLocaleString()}</small></div><div style="display:flex; align-items:center; gap:10px;"><div class="btn-circle" onclick="changeHistoryQty(${idx}, -1)">-</div><span style="font-weight:bold;">${i.qty}</span><div class="btn-circle" onclick="changeHistoryQty(${idx}, 1)">+</div></div></div>`; }).join('') || '<p style="text-align:center;padding:50px;">なし</p>'; document.getElementById('history-summary').innerHTML = `<div style="color:#666; font-size:13px;">入店: ${localStorage.getItem('checkin_'+currentTable)} / 客: ${localStorage.getItem('guests_'+currentTable)}名</div><div>税込計: <b style="font-size:24px; color:var(--primary);">¥${(sub + tax).toLocaleString()}</b></div>`; }
 async function confirmHistoryChange() { if(window.cloudSync) await window.cloudSync(currentTable); alert("同期完了"); }
 function exitEditing() { window.isEditing = false; showMenu(); }
-function showOrderHistory() { window.isEditing = true; hideAll(); document.getElementById('view-history').style.display = 'flex'; renderHistoryUI(); }
-function showCheckout() { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const total = hist.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); document.getElementById('checkout-final-total').innerText = "¥" + total.toLocaleString(); document.getElementById('checkout-final-info').innerText = `入店 ${localStorage.getItem('checkin_'+currentTable)} / 客 ${localStorage.getItem('guests_'+currentTable)}名`; hideAll(); document.getElementById('view-checkout').style.display = 'flex'; }
+function showCheckout() { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const total = hist.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); document.getElementById('checkout-final-total').innerText = "¥" + total.toLocaleString(); hideAll(); document.getElementById('view-checkout').style.display = 'flex'; }
 function updateFooter() { document.getElementById('cart-count').innerText = currentCart.reduce((s, i) => s + i.qty, 0); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const total = hist.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); document.getElementById('display-current-total').innerText = "税込合計: ¥" + total.toLocaleString(); }
-function openReceiptChoice() { if (isTestMode) { document.getElementById('receipt-preview-area').style.display = 'block'; renderReceiptSample(); } document.getElementById('overlay-receipt').style.display = 'flex'; }
-function renderReceiptSample() {
-const h = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const g = localStorage.getItem('guests_'+currentTable) || 0; const c = localStorage.getItem('checkin_'+currentTable) || "--:--"; let sub = 0, tx = 0;
-let t = `<div class="text-center text-bold">美唄焼鳥三船 東札幌店</div><div class="text-center">札幌市白石区東札幌2条3丁目9-2</div><div class="receipt-hr"></div><div>日時: ${new Date().toLocaleString()}</div><div>席: ${currentTable} 客: ${g}名 入店: ${c}</div><div class="receipt-hr"></div>`;
-h.forEach(i => { const l = i.price*i.qty; sub += l; tx += Math.floor(l * i.rate); t += `<div>${i.name}</div><div style="display:flex; justify-content:space-between;"><span>&nbsp;${i.qty}点 x ¥${i.price.toLocaleString()}</span><span>¥${l.toLocaleString()}</span></div>`; });
-t += `<div class="receipt-hr"></div><div class="text-right text-bold">税込合計: ¥${(sub+tx).toLocaleString()}</div><div class="receipt-hr"></div><div class="text-center">[登録番号] T4430001061003</div>`;
-document.getElementById('sample-receipt-content').innerHTML = t;
-}
+function openReceiptChoice() { document.getElementById('overlay-receipt').style.display = 'flex'; }
 function closeReceiptChoice() { document.getElementById('overlay-receipt').style.display = 'none'; }
-async function testSend() { if(currentCart.length === 0) return alert("空です"); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart))); localStorage.removeItem('cart_'+currentTable); currentCart = []; if(window.cloudSync) await window.cloudSync(currentTable); hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter(); }
-async function testPay() { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable); showIndex(); }
 
 async function sendToKitchen() {
-if(currentCart.length === 0) return;
-const b = new StarWebPrintBuilder(); let r = ""; const c = localStorage.getItem('checkin_'+currentTable) || "--:--";
-currentCart.forEach(item => {
-r += b.createInitializationElement(); r += b.createAlignmentElement({position: 'left'});
-const itemLine = `[${currentTable}] ${item.name} ${item.qty}\n`;
-r += b.createTextElement({ data: itemLine, width: 2, height: 2 });
-r += b.createTextElement({data: `--------------------------\n`});
-r += b.createTextElement({data: `${new Date().toLocaleTimeString()} (入店:${c})\n`});
-r += b.createCutPaperElement({type: 'partial'});
-});
-const t = new StarWebPrintTrader({url: PRINTER_URL});
-t.onReceive = async () => {
-const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]');
-localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart)));
-localStorage.removeItem('cart_'+currentTable); currentCart = [];
-if(window.cloudSync) await window.cloudSync(currentTable);
-hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter();
-};
-t.sendMessage({request: r});
+    if(currentCart.length === 0) return;
+    const b = new StarWebPrintBuilder(); let r = "";
+    currentCart.forEach(item => {
+        r += b.createInitializationElement(); r += b.createAlignmentElement({position: 'left'});
+        const itemLine = `[${currentTable}] ${item.name} ${item.qty}\n`;
+        r += b.createTextElement({ data: itemLine, width: 2, height: 2 });
+        r += b.createCutPaperElement({type: 'partial'});
+    });
+    const t = new StarWebPrintTrader({url: PRINTER_URL});
+    t.onReceive = async () => {
+        const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]');
+        localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart)));
+        localStorage.removeItem('cart_'+currentTable); currentCart = [];
+        if(window.cloudSync) await window.cloudSync(currentTable);
+        hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter();
+    };
+    t.sendMessage({request: r});
 }
 
 async function pay(doPrint) {
-closeReceiptChoice(); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const g = localStorage.getItem('guests_'+currentTable); const c = localStorage.getItem('checkin_'+currentTable);
-const b = new StarWebPrintBuilder(); let r = b.createInitializationElement(); r += b.createPeripheralElement({channel: 1, pulse: 200});
-if(doPrint) {
-let sub = 0, tx = 0; r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n`, width: 2, height: 2}); r += b.createTextElement({data: `札幌市白石区東札幌2条3丁目9-2\n\n`}); r += b.createAlignmentElement({position: 'left'});
-r += b.createTextElement({data: `日時: ${new Date().toLocaleString()}\n席: ${currentTable} 客: ${g}名 入店: ${c}\n--------------------------------\n`});
-hist.forEach(i => { const l = i.price*i.qty; sub += l; tx += Math.floor(l * i.rate); r += b.createTextElement({data: `${i.name}\n  ${i.qty}点 x ¥${i.price}    ¥${l}\n`}); });
-r += b.createTextElement({data: `--------------------------------\n`}); r += b.createAlignmentElement({position: 'right'}); r += b.createTextElement({data: `税込合計: ¥${(sub + tx).toLocaleString()}\n`, width: 2, height: 2});
-r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `\n[登録番号] T4430001061003\n株式会社Stag Beetle Corporation\n\n`}); r += b.createCutPaperElement({type: 'partial'});
-}
-const t = new StarWebPrintTrader({url: PRINTER_URL}); t.onReceive = async () => { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable); showIndex(); }; t.sendMessage({request: r});
+    closeReceiptChoice(); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]');
+    const b = new StarWebPrintBuilder(); let r = b.createInitializationElement(); r += b.createPeripheralElement({channel: 1, pulse: 200});
+    if(doPrint && hist.length > 0) {
+        let sub = 0, tx = 0; r += b.createAlignmentElement({position: 'center'});
+        r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n`, width: 2, height: 2});
+        hist.forEach(i => { const l = i.price*i.qty; sub += l; tx += Math.floor(l * i.rate); r += b.createTextElement({data: `${i.name} x${i.qty} ¥${Math.floor(l*(1+i.rate)).toLocaleString()}\n`}); });
+        r += b.createTextElement({data: `合計 ¥${Math.floor(sub+tx).toLocaleString()}\n`, width: 2, height: 2});
+        r += b.createCutPaperElement({type: 'partial'});
+    }
+    const t = new StarWebPrintTrader({url: PRINTER_URL});
+    t.onReceive = async () => { await window.saveSaleToCloud(currentTable); showIndex(); };
+    t.onError = async () => { await window.saveSaleToCloud(currentTable); showIndex(); };
+    t.sendMessage({request: r});
 }
 window.onload = () => { renderIndex(); };
 </script>

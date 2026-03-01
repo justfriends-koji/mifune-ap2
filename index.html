@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>三船 リアルタイムPOS</title>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <script src="StarWebPrintBuilder.js"></script>
+<script src="StarWebPrintBuilder.js"></script>
 <script src="StarWebPrintTrader.js"></script>
 <style>
 :root { --primary: #f39c12; --secondary: #fbb03b; --bg: #f8f8f8; --text: #333; --accent: #2ecc71; --gray: #999; --danger: #e74c3c; --info: #3498db; --dark: #444; }
@@ -40,7 +40,7 @@ header { background: #fff; padding: 0 15px; display: flex; align-items: center; 
 .qty-ctrl { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #f0f0f0; padding-top: 10px; }
 .btn-circle { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #ccc; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; }
 .btn-add { background: var(--primary); color: #fff; border: none; padding: 12px 0; border-radius: 25px; font-size: 15px; font-weight: bold; flex: 1; margin-left: 10px; box-shadow: 0 3px 6px rgba(243,156,18,0.3); }
-footer { width: 100%; display: flex; flex-direction: column; z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); flex-shrink: 0; }
+footer { width: 100%; display: flex; flex-direction: column; z-index: 100; box-shadow: 0 -3px 10px rgba(0,0,0,0.1); flex-shrink: 0; }
 .footer-history { background: var(--dark); color: #fff; padding: 10px 15px; display: flex; justify-content: space-between; font-size: 14px; cursor: pointer; }
 .footer-cart { background: var(--secondary); color: #fff; padding: 18px 15px; display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; cursor: pointer; }
 .list-container { flex: 1; overflow-y: auto; background: #fff; -webkit-overflow-scrolling: touch; padding-bottom: 100px; }
@@ -66,7 +66,6 @@ footer { width: 100%; display: flex; flex-direction: column; z-index: 100; box-s
 .receipt-sample { background: #fff; padding: 15px; color: #000; font-family: monospace; text-align: left; font-size: 11px; border: 1px dashed #ccc; width: 100%; }
 .receipt-hr { border-top: 1px dashed #000; margin: 5px 0; }
 
-/* 領収書入力用スタイル */
 .receipt-input-area { text-align: left; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; }
 .receipt-input-area label { font-size: 12px; font-weight: bold; color: #666; display: block; margin-bottom: 5px; }
 .receipt-input-field { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; font-size: 16px; -webkit-appearance: none; }
@@ -204,13 +203,19 @@ window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tabl
 <div class="menu-container"><div class="sidebar" id="side-cats"></div><div class="item-grid" id="display-items"></div></div>
 <footer><div class="footer-history" onclick="showOrderHistory()"><span>注文済合計</span><span id="display-current-total">¥0</span></div><div class="footer-cart" onclick="showCart()"><div>🛒 <span id="cart-count">0</span>点</div><div>注文を確認 ＞</div></div></footer>
 </div>
-<div id="view-cart" class="view"><header><span class="back-btn" onclick="exitEditing()">＜</span>カート確認</header><div class="list-container" id="cart-items-list"></div><div style="background:#fff; border-top:1px solid #eee; padding-bottom:10px;"><button class="btn-large" style="background:var(--info); color:white;" onclick="testSend()">送信(同期のみ)</button><button class="btn-large" style="background:var(--primary);color:white;" onclick="sendToKitchen()">本番送信</button></div></div>
+<div id="view-cart" class="view"><header><span class="back-btn" onclick="exitEditing()">＜</span>カート確認</header><div class="list-container" id="cart-items-list"></div><div style="background:#fff; border-top:1px solid #eee; padding-bottom:10px;"><button class="btn-large" style="background:var(--primary);color:white;" onclick="sendToKitchen()">本番送信</button></div></div>
 <div id="view-history" class="view"><header><span class="back-btn" onclick="exitEditing()">＜</span>修正</header><div class="list-container" id="history-items-list"></div><div class="summary-area" id="history-summary"></div><div style="background:#fff; border-top:1px solid #ddd; padding-bottom:10px;"><button class="btn-large" style="background:var(--accent); color:white;" onclick="confirmHistoryChange()">保存して同期</button><button class="btn-large" style="background:var(--secondary); color:white;" onclick="showCheckout()">お会計確定へ</button></div></div>
-<div id="view-checkout" class="view"><header><span class="back-btn" onclick="showOrderHistory()">＜</span>会計確定</header><div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;"><div style="padding:30px 20px; background:#fff; border-radius:15px; text-align:center; box-shadow:0 4px 10px rgba(0,0,0,0.1); width:85%;"><div id="checkout-final-total" style="font-size:40px; font-weight:bold; color:var(--primary);">¥0</div><div id="checkout-final-info" style="color:#666; font-size:12px;"></div></div></div><button class="btn-large" style="background:var(--info); color:white;" onclick="testPay()">【テスト】会計完了</button><button class="btn-large" style="background:var(--accent);color:white;" onclick="openReceiptChoice()">本番会計</button></div>
+<div id="view-checkout" class="view"><header><span class="back-btn" onclick="showOrderHistory()">＜</span>会計確定</header><div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;"><div style="padding:30px 20px; background:#fff; border-radius:15px; text-align:center; box-shadow:0 4px 10px rgba(0,0,0,0.1); width:85%;"><div id="checkout-final-total" style="font-size:40px; font-weight:bold; color:var(--primary);">¥0</div><div id="checkout-final-info" style="color:#666; font-size:12px;"></div></div></div><button class="btn-large" style="background:var(--accent);color:white;" onclick="openReceiptChoice()">本番会計</button></div>
+
+<div id="view-success" class="view" style="text-align:center; justify-content:center; background: #fff;">
+    <h2>送信完了</h2>
+    <p>キッチンへ伝票を飛ばしました</p>
+    <button class="btn-large" style="background:var(--primary);color:white;" onclick="showMenu()">戻る</button>
+</div>
+
 <div id="overlay-receipt" class="overlay">
     <div class="modal">
-        <div id="receipt-preview-area" style="display:none;"><div class="modal-title">印刷プレビュー</div><div id="sample-receipt-content" class="receipt-sample"></div></div>
-        <div class="modal-title" id="receipt-modal-main-title">会計を完了しますか？</div>
+        <h3>会計を完了しますか？</h3>
         <button class="btn-large" style="background:var(--primary); color:white;" onclick="pay(true, false)">レシート印刷して完了</button>
         <button class="btn-large" style="background:var(--accent); color:white;" onclick="showReceiptInput()">領収書を印刷して完了</button>
         <button class="btn-large" style="background:var(--gray); color:white;" onclick="pay(false, false)">印刷せずに完了</button>
@@ -233,7 +238,7 @@ window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tabl
 </div>
 
 <script>
-// --- 商品データ (ご提示リスト完全反映) ---
+// --- 商品データ ---
 const rawData = [
     ["お通し", "お通し", 300],
     ["もつ串", "美唄焼鳥", 150],
@@ -244,7 +249,7 @@ const rawData = [
     ["手羽焼き（2本）", "焼き物", 400],
     ["国産豚のロース網焼きステーキ", "焼き物", 600],
     ["ハーフ豚の網焼きステーキ（1枚）", "焼き物", 700],
-    ["ハーフ豚ের 炙りチャーシュー", "焼き物", 600],
+    ["ハーフ豚の炙りチャーシュー", "焼き物", 600],
     ["自家製つくねのコロコロ焼き（4玉）", "焼き物", 400],
     ["ささみ串焼き（数量限定 1串）", "焼き物", 250],
     ["鴨肉の網焼き", "焼き物", 600],
@@ -443,6 +448,7 @@ const rawData = [
     ["弁当B", "無人", 1000]
 ];
 
+// --- カテゴリー分類ロジック ---
 const menuData = []; const allCat = { cat: "全メニュー", items: [] }; rawData.forEach(r => { allCat.items.push({n: r[0], p: r[2], c: r[1]}); let c = menuData.find(x => x.cat === r[1]); if(!c) { c = {cat: r[1], items: []}; menuData.push(c); } c.items.push({n: r[0], p: r[2]}); }); menuData.unshift(allCat);
 const tablesL = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
 let currentTable = "", currentCart = [], tempGuestCount = "0";
@@ -457,44 +463,43 @@ function handleLogin() { window.loginOwner(document.getElementById('login-email'
 function onTableClick(tId) { currentTable = tId; if(localStorage.getItem('history_' + tId)) showMenu(); else showGuestInput(); }
 
 async function showAdmin(mode) {
-    hideAll(); document.getElementById('view-admin').style.display = 'flex';
-    document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
-    const navId = mode==='month'?'month':mode==='dow'?'dow':'day';
-    const navEl = document.getElementById('nav-' + navId);
-    if(navEl) navEl.classList.add('active');
-    const list = document.getElementById('sales-list'); list.innerHTML = '<p style="text-align:center; padding:50px;">集計中...</p>';
-    try {
-        const sales = await window.getSalesData(mode);
-        let total = 0, guests = 0;
-        if (mode === 'day') {
-            list.innerHTML = sales.map(s => {
-                total += s.total; guests += s.guests;
-                return `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.checkout}</span><span class="sale-table-badge">${s.tableId}番</span></div><div class="sale-detail-info">客: ${s.guests}名 / 入店: ${s.checkin}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.total.toLocaleString()}</span><button class="btn-del-sale" onclick="deleteSaleDoc('${s.id}')">削除</button></div></div>`;
-            }).join('') || '<p style="text-align:center; padding:50px;">本日データなし</p>';
-        } else if (mode === 'dow') {
-            const labels = ['日','月','火','水','木','金','土'];
-            let stats = [0,1,2,3,4,5,6].map(i=>({l:labels[i], t:0, c:0, g:0}));
-            sales.forEach(s => { const dow = s.timestamp.toDate().getDay(); stats[dow].t += s.total; stats[dow].c++; stats[dow].g += s.guests; total += s.total; guests += s.guests; });
-            list.innerHTML = stats.map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.l}曜日</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span></div></div>`).join('');
-        } else if (mode === 'month') {
-            let mStats = Array(12).fill(0).map((_,i)=>({l:(i+1)+'月', t:0, c:0, g:0}));
-            sales.forEach(s => { const m = s.timestamp.toDate().getMonth(); mStats[m].t += s.total; mStats[m].c++; mStats[m].g += s.guests; total += s.total; guests += s.guests; });
-            list.innerHTML = mStats.filter(s=>s.c>0).reverse().map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.l}</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span></div></div>`).join('');
-        }
-        document.getElementById('sum-total').innerText = total.toLocaleString();
-        document.getElementById('sum-guests').innerText = guests;
-        document.getElementById('sum-count').innerText = sales.length;
-    } catch(e) { list.innerHTML = `<p style="color:red; padding:20px;">エラー: ${e.message}</p>`; }
+    hideAll(); document.getElementById('view-admin').style.display = 'flex';
+    document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
+    const navId = mode==='month'?'month':mode==='dow'?'dow':'day';
+    document.getElementById('nav-' + navId).classList.add('active');
+    const list = document.getElementById('sales-list'); list.innerHTML = '<p style="text-align:center; padding:50px;">集計中...</p>';
+    try {
+        const sales = await window.getSalesData(mode);
+        let total = 0, guests = 0;
+        if (mode === 'day') {
+            list.innerHTML = sales.map(s => {
+                total += s.total; guests += s.guests;
+                return `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.checkout}</span><span class="sale-table-badge">${s.tableId}番</span></div><div class="sale-detail-info">客: ${s.guests}名 / 入店: ${s.checkin}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.total.toLocaleString()}</span><button class="btn-del-sale" onclick="deleteSaleDoc('${s.id}')">削除</button></div></div>`;
+            }).join('') || '<p style="text-align:center; padding:50px;">本日データなし</p>';
+        } else if (mode === 'dow') {
+            const labels = ['日','月','火','水','木','金','土'];
+            let stats = [0,1,2,3,4,5,6].map(i=>({l:labels[i], t:0, c:0, g:0}));
+            sales.forEach(s => { const dow = s.timestamp.toDate().getDay(); stats[dow].t += s.total; stats[dow].c++; stats[dow].g += s.guests; total += s.total; guests += s.guests; });
+            list.innerHTML = stats.map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.l}曜日</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span></div></div>`).join('');
+        } else if (mode === 'month') {
+            let mStats = Array(12).fill(0).map((_,i)=>({l:(i+1)+'月', t:0, c:0, g:0}));
+            sales.forEach(s => { const m = s.timestamp.toDate().getMonth(); mStats[m].t += s.total; mStats[m].c++; mStats[m].g += s.guests; total += s.total; guests += s.guests; });
+            list.innerHTML = mStats.filter(s=>s.c>0).reverse().map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.l}</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span></div></div>`).join('');
+        }
+        document.getElementById('sum-total').innerText = total.toLocaleString();
+        document.getElementById('sum-guests').innerText = guests;
+        document.getElementById('sum-count').innerText = sales.length;
+    } catch(e) { list.innerHTML = `<p style="color:red; padding:20px;">エラー: ${e.message}</p>`; }
 }
 
 async function printReport(mode) {
-    const sales = await window.getSalesData(mode); if(sales.length === 0) return alert("データなし");
-    let total = 0, guests = 0; sales.forEach(s => total += s.total);
-    const b = new StarWebPrintBuilder(); let r = b.createInitializationElement();
-    r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n【${mode==='day'?'日計':'月計'}】\n`, width:2, height:2});
-    r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `--------------------------------\n売上: ¥${total.toLocaleString()}\n客数: ${guests}名\n件数: ${sales.length}件\n--------------------------------\n`});
-    r += b.createCutPaperElement({type: 'partial'});
-    const t = new StarWebPrintTrader({url: PRINTER_URL}); t.sendMessage({request: r}); alert("印刷しました");
+    const sales = await window.getSalesData(mode); if(sales.length === 0) return alert("データなし");
+    let total = 0, guests = 0; sales.forEach(s => total += s.total);
+    const b = new StarWebPrintBuilder(); let r = b.createInitializationElement();
+    r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n【${mode==='day'?'日計':'月計'}】\n`, width:2, height:2});
+    r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `--------------------------------\n売上: ¥${total.toLocaleString()}\n客数: ${guests}名\n件数: ${sales.length}件\n--------------------------------\n`});
+    r += b.createCutPaperElement({type: 'partial'});
+    const t = new StarWebPrintTrader({url: PRINTER_URL}); t.sendMessage({request: r}); alert("印刷しました");
 }
 
 function showGuestInput() { hideAll(); tempGuestCount = "0"; document.getElementById('guest-table-name').innerText = currentTable + "番席"; document.getElementById('guest-count-val').innerText = tempGuestCount; document.getElementById('view-guest').style.display = 'flex'; const k = document.getElementById('guest-keypad'); k.innerHTML = [1,2,3,4,5,6,7,8,9,'C',0,'決定'].map(num => { let s = num === '決定' ? 'background:var(--accent); color:#fff;' : ''; let f = num === '決定' ? 'confirmGuestCount()' : (num === 'C' ? 'clearGuestNum()' : `inputGuestNum(${num})`); return `<button class="key-btn" style="${s}" onclick="${f}">${num}</button>`; }).join(''); }
@@ -518,26 +523,13 @@ function exitEditing() { window.isEditing = false; showMenu(); }
 function showOrderHistory() { window.isEditing = true; hideAll(); document.getElementById('view-history').style.display = 'flex'; renderHistoryUI(); }
 function showCheckout() { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const total = hist.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); document.getElementById('checkout-final-total').innerText = "¥" + total.toLocaleString(); document.getElementById('checkout-final-info').innerText = `入店 ${localStorage.getItem('checkin_'+currentTable)} / 客 ${localStorage.getItem('guests_'+currentTable)}名`; hideAll(); document.getElementById('view-checkout').style.display = 'flex'; }
 function updateFooter() { document.getElementById('cart-count').innerText = currentCart.reduce((s, i) => s + i.qty, 0); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const total = hist.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); document.getElementById('display-current-total').innerText = "税込合計: ¥" + total.toLocaleString(); }
-function openReceiptChoice() { if (isTestMode) { document.getElementById('receipt-preview-area').style.display = 'block'; renderReceiptSample(); } document.getElementById('overlay-receipt').style.display = 'flex'; }
-function renderReceiptSample() {
-const h = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const g = localStorage.getItem('guests_'+currentTable) || 0; const c = localStorage.getItem('checkin_'+currentTable) || "--:--"; let sub = 0, tx = 0;
-let t = `<div class="text-center text-bold">美唄焼鳥三船 東札幌店</div><div class="text-center">札幌市白石区東札幌2条3丁目9-2</div><div class="receipt-hr"></div><div>日時: ${new Date().toLocaleString()}</div><div>席: ${currentTable} 客: ${g}名 入店: ${c}</div><div class="receipt-hr"></div>`;
-h.forEach(i => { const l = i.price*i.qty; sub += l; tx += Math.floor(l * i.rate); t += `<div>${i.name}</div><div style="display:flex; justify-content:space-between;"><span>&nbsp;${i.qty}点 x ¥${i.price.toLocaleString()}</span><span>¥${l.toLocaleString()}</span></div>`; });
-t += `<div class="receipt-hr"></div><div class="text-right text-bold">税込合計: ¥${(sub+tx).toLocaleString()}</div><div class="receipt-hr"></div><div class="text-center">[登録番号] T4430001061003</div>`;
-document.getElementById('sample-receipt-content').innerHTML = t;
-}
+function openReceiptChoice() { document.getElementById('overlay-receipt').style.display = 'flex'; }
 function closeReceiptChoice() { document.getElementById('overlay-receipt').style.display = 'none'; }
+function showReceiptInput() { document.getElementById('overlay-receipt').style.display = 'none'; document.getElementById('overlay-receipt-input').style.display = 'flex'; }
+function closeReceiptInput() { document.getElementById('overlay-receipt-input').style.display = 'none'; document.getElementById('overlay-receipt').style.display = 'flex'; }
+
 async function testSend() { if(currentCart.length === 0) return alert("空です"); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart))); localStorage.removeItem('cart_'+currentTable); currentCart = []; if(window.cloudSync) await window.cloudSync(currentTable); hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter(); }
 async function testPay() { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable); showIndex(); }
-
-function showReceiptInput() {
-    document.getElementById('overlay-receipt').style.display = 'none';
-    document.getElementById('overlay-receipt-input').style.display = 'flex';
-}
-function closeReceiptInput() {
-    document.getElementById('overlay-receipt-input').style.display = 'none';
-    document.getElementById('overlay-receipt').style.display = 'flex';
-}
 
 async function sendToKitchen() {
 if(currentCart.length === 0) return;
@@ -561,7 +553,6 @@ hideAll(); document.getElementById('view-success').style.display = 'flex'; updat
 t.sendMessage({request: r});
 }
 
-// 領収書印刷用関数
 async function payWithReceipt() {
     const name = document.getElementById('receipt-name').value || "上様";
     const proviso = document.getElementById('receipt-proviso').value || "お食事代として";
@@ -569,39 +560,30 @@ async function payWithReceipt() {
     document.getElementById('overlay-receipt-input').style.display = 'none';
 }
 
-async function pay(doPrint, isReceipt, receiptName, receiptProviso) {
-    closeReceiptChoice(); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const g = localStorage.getItem('guests_'+currentTable); const c = localStorage.getItem('checkin_'+currentTable);
+async function pay(doPrint, isReceipt, rName, rProviso) {
+    const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]');
     const b = new StarWebPrintBuilder(); let r = b.createInitializationElement(); r += b.createPeripheralElement({channel: 1, pulse: 200});
-    
     if(doPrint) {
         if(isReceipt) {
-            // --- 領収書レイアウト ---
             let total = 0; hist.forEach(i => total += Math.floor(i.price * i.qty * (1 + i.rate)));
-            r += b.createAlignmentElement({position: 'center'});
-            r += b.createTextElement({data: `領 収 証\n`, width: 2, height: 2});
-            r += b.createAlignmentElement({position: 'left'});
-            r += b.createTextElement({data: `\n${receiptName} 様\n\n`});
-            r += b.createAlignmentElement({position: 'center'});
-            r += b.createTextElement({data: `金額 ￥${total.toLocaleString()}-\n`, width: 2, height: 2});
-            r += b.createAlignmentElement({position: 'left'});
-            r += b.createTextElement({data: `\n但し ${receiptProviso}\n`});
-            r += b.createTextElement({data: `上記正に領収いたしました\n\n`});
-            r += b.createTextElement({data: `      [ 印  紙 ]\n\n`});
-            r += b.createAlignmentElement({position: 'right'});
-            r += b.createTextElement({data: `${new Date().toLocaleDateString()}\n`});
-            r += b.createAlignmentElement({position: 'center'});
-            r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n札幌市白石区東札幌2条3丁目9-2\n[登録番号] T4430001061003\n`});
-            r += b.createCutPaperElement({type: 'partial'});
+            r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `領 収 証\n`, width: 2, height: 2});
+            r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `\n${rName} 様\n\n`});
+            r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `金額 ￥${total.toLocaleString()}-\n`, width: 2, height: 2});
+            r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `\n但し ${rProviso}\n上記正に領収いたしました\n\n      [ 印  紙 ]\n\n`});
+            r += b.createAlignmentElement({position: 'right'}); r += b.createTextElement({data: `${new Date().toLocaleDateString()}\n`});
+            r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n札幌市白石区東札幌2条3丁目9-2\nT4430001061003\n`});
         } else {
-            // --- 通常レシートレイアウト ---
-            let sub = 0, tx = 0; r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n`, width: 2, height: 2}); r += b.createTextElement({data: `札幌市白石区東札幌2条3丁目9-2\n\n`}); r += b.createAlignmentElement({position: 'left'});
-            r += b.createTextElement({data: `日時: ${new Date().toLocaleString()}\n席: ${currentTable} 客: ${g}名 入店: ${c}\n--------------------------------\n`});
-            hist.forEach(i => { const l = i.price*i.qty; sub += l; tx += Math.floor(l * i.rate); r += b.createTextElement({data: `${i.name}\n  ${i.qty}点 x ¥${i.price}    ¥${l}\n`}); });
-            r += b.createTextElement({data: `--------------------------------\n`}); r += b.createAlignmentElement({position: 'right'}); r += b.createTextElement({data: `税込合計: ¥${(sub + tx).toLocaleString()}\n`, width: 2, height: 2});
-            r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `\n[登録番号] T4430001061003\n株式会社Stag Beetle Corporation\n\n`}); r += b.createCutPaperElement({type: 'partial'});
+            let sub = 0, tx = 0; r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n\n`});
+            hist.forEach(i => { const l = i.price*i.qty; sub += l; tx += Math.floor(l * i.rate); r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `${i.name} x${i.qty} ¥${l}\n`}); });
+            r += b.createAlignmentElement({position: 'right'}); r += b.createTextElement({data: `\n合計 ¥${(sub + tx).toLocaleString()}\n`, width: 2, height: 2});
         }
+        r += b.createCutPaperElement({type: 'partial'});
     }
-    const t = new StarWebPrintTrader({url: PRINTER_URL}); t.onReceive = async () => { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable); showIndex(); }; t.sendMessage({request: r});
+    const t = new StarWebPrintTrader({url: PRINTER_URL});
+    t.onReceive = async () => { await window.saveSaleToCloud(currentTable); showIndex(); };
+    t.onError = async () => { await window.saveSaleToCloud(currentTable); showIndex(); };
+    t.sendMessage({request: r});
+    closeReceiptChoice();
 }
 window.onload = () => { renderIndex(); };
 </script>

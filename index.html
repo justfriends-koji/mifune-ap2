@@ -198,6 +198,10 @@ window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tabl
 <div id="view-admin" class="view">
 <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>売上管理</span></div><div style="font-size:12px; color:var(--danger);" onclick="logoutOwner()">終了</div></header>
 <div class="admin-nav"><div id="nav-day" class="admin-nav-btn active" onclick="showAdmin('day')">本日</div><div id="nav-dates" class="admin-nav-btn" onclick="showAdmin('dates')">日別</div><div id="nav-dow" class="admin-nav-btn" onclick="showAdmin('dow')">曜日別</div><div id="nav-month" class="admin-nav-btn" onclick="showAdmin('month')">月別</div></div>
+<div id="month-selector-area" style="display:none; background:#fff; padding:10px 15px; border-bottom:1px solid #ddd; display:none; align-items:center; gap:10px;">
+  <span style="font-size:13px; color:#666;">表示月：</span>
+  <select id="month-selector" onchange="showAdmin('month')" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:15px; flex:1;"></select>
+</div>
 <div id="admin-summary-area" style="padding:15px; background:var(--dark); color:#fff; display:flex; justify-content:space-around; text-align:center; font-size:13px;"><div>件数<br><span id="sum-count" style="font-size:20px; font-weight:bold;">0</span></div><div>客数<br><span id="sum-guests" style="font-size:20px; font-weight:bold;">0</span></div><div>合計<br>¥<span id="sum-total" style="font-size:20px; font-weight:bold;">0</span></div></div>
 <div class="report-btns"><button class="btn-report" onclick="printReport('day')">日計印刷</button><button class="btn-report" onclick="printReport('month')" style="background:var(--accent);">月計印刷</button></div>
 <div class="list-container" id="sales-list" style="background:#f4f4f4; padding:5px 0;"></div>
@@ -494,9 +498,43 @@ async function showAdmin(mode) {
     const navId = mode==='month'?'month':mode==='dow'?'dow':mode==='dates'?'dates':'day';
     const navEl = document.getElementById('nav-' + navId);
     if(navEl) navEl.classList.add('active');
+    // 月別セレクター表示制御
+    const selArea = document.getElementById('month-selector-area');
+    selArea.style.display = mode === 'month' ? 'flex' : 'none';
     const list = document.getElementById('sales-list'); list.innerHTML = '<p style="text-align:center; padding:50px;">集計中...</p>';
     try {
-        const sales = await window.getSalesData(mode);
+        // 全データ取得（dow=全件）
+        const allSales = await window.getSalesData('dow');
+        // 月別セレクターを全データから動的生成
+        if (mode === 'month') {
+            const monthSet = {};
+            allSales.forEach(s => {
+                const d = s.timestamp.toDate();
+                const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                const label = `${d.getFullYear()}年${d.getMonth()+1}月`;
+                monthSet[key] = label;
+            });
+            const sel = document.getElementById('month-selector');
+            const currentVal = sel.value;
+            const now = new Date();
+            const defaultKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+            sel.innerHTML = Object.keys(monthSet).sort().reverse().map(k =>
+                `<option value="${k}" ${(currentVal||defaultKey)===k?'selected':''}>${monthSet[k]}</option>`
+            ).join('');
+        }
+        // 表示対象のsalesをフィルタ
+        let sales;
+        const now = new Date();
+        if (mode === 'month') {
+            const [selY, selM] = document.getElementById('month-selector').value.split('-').map(Number);
+            sales = allSales.filter(s => { const d = s.timestamp.toDate(); return d.getFullYear()===selY && d.getMonth()+1===selM; });
+        } else if (mode === 'day') {
+            sales = allSales.filter(s => s.timestamp.toDate().toDateString() === now.toDateString());
+        } else if (mode === 'dates' || mode === 'dow') {
+            sales = allSales.filter(s => { const d = s.timestamp.toDate(); return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth(); });
+        } else {
+            sales = allSales;
+        }
         let total = 0, guests = 0;
         if (mode === 'day') {
             list.innerHTML = sales.map(s => {
@@ -523,9 +561,10 @@ async function showAdmin(mode) {
             sales.forEach(s => { const dow = s.timestamp.toDate().getDay(); stats[dow].t += s.total; stats[dow].c++; stats[dow].g += s.guests; total += s.total; guests += s.guests; });
             list.innerHTML = stats.map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.l}曜日</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span></div></div>`).join('');
         } else if (mode === 'month') {
-            let mStats = Array(12).fill(0).map((_,i)=>({l:(i+1)+'月', t:0, c:0, g:0}));
-            sales.forEach(s => { const m = s.timestamp.toDate().getMonth(); mStats[m].t += s.total; mStats[m].c++; mStats[m].g += s.guests; total += s.total; guests += s.guests; });
-            list.innerHTML = mStats.filter(s=>s.c>0).reverse().map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.l}</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span></div></div>`).join('');
+            sales.forEach(s => { total += s.total; guests += s.guests; });
+            list.innerHTML = sales.map(s => {
+                return `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.checkout}</span><span class="sale-table-badge">${s.tableId}番</span></div><div class="sale-detail-info">客: ${s.guests}名 / 入店: ${s.checkin}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.total.toLocaleString()}</span><button class="btn-del-sale" onclick="deleteSaleDoc('${s.id}')">削除</button></div></div>`;
+            }).join('') || '<p style="text-align:center; padding:50px;">データなし</p>';
         }
         document.getElementById('sum-total').innerText = total.toLocaleString();
         document.getElementById('sum-guests').innerText = guests;

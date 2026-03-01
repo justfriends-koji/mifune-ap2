@@ -162,7 +162,7 @@ await deleteDoc(doc(db, "tables", tableId));
 
 window.getSalesData = async (mode) => {
 const now = new Date();
-const snap = await getDocs(query(collection(db, "sales")));
+const snap = await getDocs(collection(db, "sales"));
 let res = [];
 snap.forEach(d => {
     let data = d.data(); data.id = d.id;
@@ -198,7 +198,7 @@ window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tabl
 <div id="view-admin" class="view">
 <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>売上管理</span></div><div style="font-size:12px; color:var(--danger);" onclick="logoutOwner()">終了</div></header>
 <div class="admin-nav"><div id="nav-day" class="admin-nav-btn active" onclick="showAdmin('day')">本日</div><div id="nav-dates" class="admin-nav-btn" onclick="showAdmin('dates')">日別</div><div id="nav-dow" class="admin-nav-btn" onclick="showAdmin('dow')">曜日別</div><div id="nav-month" class="admin-nav-btn" onclick="showAdmin('month')">月別</div></div>
-<div id="month-selector-area" style="display:none; background:#fff; padding:10px 15px; border-bottom:1px solid #ddd; display:none; align-items:center; gap:10px;">
+<div id="month-selector-area" style="display:none; align-items:center; gap:10px; background:#fff; padding:10px 15px; border-bottom:1px solid #ddd;">
   <span style="font-size:13px; color:#666;">表示月：</span>
   <select id="month-selector" onchange="showAdmin('month')" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:15px; flex:1;"></select>
 </div>
@@ -562,9 +562,17 @@ async function showAdmin(mode) {
             list.innerHTML = stats.map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.l}曜日</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span></div></div>`).join('');
         } else if (mode === 'month') {
             sales.forEach(s => { total += s.total; guests += s.guests; });
-            list.innerHTML = sales.map(s => {
-                return `<div class="sale-card"><div class="sale-time-row"><span class="sale-time">${s.checkout}</span><span class="sale-table-badge">${s.tableId}番</span></div><div class="sale-detail-info">客: ${s.guests}名 / 入店: ${s.checkin}</div><div class="sale-total-line"><span class="sale-price-big">¥${s.total.toLocaleString()}</span><button class="btn-del-sale" onclick="deleteSaleDoc('${s.id}')">削除</button></div></div>`;
-            }).join('') || '<p style="text-align:center; padding:50px;">データなし</p>';
+            // 日別にグループ化して表示
+            const dayMap = {};
+            sales.forEach(s => {
+                const d = s.timestamp.toDate();
+                const key = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+                const dow = ['日','月','火','水','木','金','土'][d.getDay()];
+                if(!dayMap[key]) dayMap[key] = { label: `${key}（${dow}）`, t: 0, c: 0, g: 0, ts: d.getTime() };
+                dayMap[key].t += s.total; dayMap[key].c++; dayMap[key].g += s.guests;
+            });
+            const sorted = Object.values(dayMap).sort((a,b) => b.ts - a.ts);
+            list.innerHTML = sorted.map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time" style="font-size:15px;">${s.label}</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}名</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span></div></div>`).join('') || '<p style="text-align:center; padding:50px;">データなし</p>';
         }
         document.getElementById('sum-total').innerText = total.toLocaleString();
         document.getElementById('sum-guests').innerText = guests;
@@ -574,10 +582,26 @@ async function showAdmin(mode) {
 
 async function printReport(mode) {
     const sales = await window.getSalesData(mode); if(sales.length === 0) return alert("データなし");
-    let total = 0, guests = 0; sales.forEach(s => total += s.total);
+    let total = 0, guests = 0; sales.forEach(s => { total += s.total; guests += s.guests; });
     const b = new StarWebPrintBuilder(); let r = b.createInitializationElement();
     r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n【${mode==='day'?'日計':'月計'}】\n`, width:2, height:2});
     r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `--------------------------------\n売上: ¥${total.toLocaleString()}\n客数: ${guests}名\n件数: ${sales.length}件\n--------------------------------\n`});
+    if (mode === 'month') {
+        const dayMap = {};
+        sales.forEach(s => {
+            const d = s.timestamp.toDate();
+            const key = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+            const dow = ['日','月','火','水','木','金','土'][d.getDay()];
+            if(!dayMap[key]) dayMap[key] = { label: `${key}（${dow}）`, t: 0, c: 0, g: 0 };
+            dayMap[key].t += s.total; dayMap[key].c++; dayMap[key].g += s.guests;
+        });
+        const sorted = Object.entries(dayMap).sort((a,b) => a[0].localeCompare(b[0]));
+        r += b.createTextElement({data: `\n【日別明細】\n`});
+        sorted.forEach(([key, s]) => {
+            r += b.createTextElement({data: `${s.label}\n  ${s.c}件 / ${s.g}名 / ¥${s.t.toLocaleString()}\n`});
+        });
+        r += b.createTextElement({data: `--------------------------------\n`});
+    }
     r += b.createCutPaperElement({type: 'partial'});
     const t = new StarWebPrintTrader({url: PRINTER_URL}); t.sendMessage({request: r}); alert("印刷しました");
 }

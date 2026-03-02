@@ -696,9 +696,9 @@ async function printReport(mode) {
         r += b.createCutPaperElement({type: 'partial'});
         const t = new StarWebPrintTrader({url: PRINTER_URL}); t.sendMessage({request: r}); alert("印刷しました");
     } else {
-        // 日計：前後2日分の選択肢
+        // 日計：過去30日分の選択肢
         const options = [];
-        for (let i = -2; i <= 0; i++) {
+        for (let i = -30; i <= 0; i++) {
             const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
             const dow = ['日','月','火','水','木','金','土'][d.getDay()];
             const key = d.toDateString();

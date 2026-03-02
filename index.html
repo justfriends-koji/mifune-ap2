@@ -243,7 +243,7 @@ window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tabl
 <div class="admin-nav"><div id="nav-day" class="admin-nav-btn active" onclick="showAdmin('day')">本日</div><div id="nav-dates" class="admin-nav-btn" onclick="showAdmin('dates')">日別</div><div id="nav-dow" class="admin-nav-btn" onclick="showAdmin('dow')">曜日別</div><div id="nav-month" class="admin-nav-btn" onclick="showAdmin('month')">月別</div><div id="nav-menu" class="admin-nav-btn" onclick="showAdmin('menu')">メニュー別</div></div>
 <div id="month-selector-area" style="display:none; align-items:center; gap:10px; background:#fff; padding:10px 15px; border-bottom:1px solid #ddd;">
   <span style="font-size:13px; color:#666;">表示月：</span>
-  <select id="month-selector" onchange="showAdmin('month')" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:15px; flex:1;"></select>
+  <select id="month-selector" onchange="showAdmin(document.querySelector('.admin-nav-btn.active').id === 'nav-menu' ? 'menu' : 'month')" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:15px; flex:1;"></select>
 </div>
 <div id="admin-summary-area" style="padding:15px; background:var(--dark); color:#fff; display:flex; justify-content:space-around; text-align:center; font-size:13px;"><div>件数<br><span id="sum-count" style="font-size:20px; font-weight:bold;">0</span></div><div>客数<br><span id="sum-guests" style="font-size:20px; font-weight:bold;">0</span></div><div>合計<br>¥<span id="sum-total" style="font-size:20px; font-weight:bold;">0</span></div></div>
 <div class="report-btns"><button class="btn-report" onclick="printReport('day')">日計印刷</button><button class="btn-report" onclick="printReport('month')" style="background:var(--accent);">月計印刷</button></div>
@@ -543,7 +543,7 @@ async function showAdmin(mode) {
     if(navEl) navEl.classList.add('active');
     // 月別セレクター表示制御
     const selArea = document.getElementById('month-selector-area');
-    selArea.style.display = mode === 'month' ? 'flex' : 'none';
+    selArea.style.display = (mode === 'month' || mode === 'menu') ? 'flex' : 'none';
     const list = document.getElementById('sales-list'); list.innerHTML = '<p style="text-align:center; padding:50px;">集計中...</p>';
     try {
         // 全データ取得（dow=全件）
@@ -617,11 +617,25 @@ async function showAdmin(mode) {
             const sorted = Object.values(dayMap).sort((a,b) => b.ts - a.ts);
             list.innerHTML = sorted.map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time" style="font-size:15px;">${s.label}</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}名</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span></div></div>`).join('') || '<p style="text-align:center; padding:50px;">データなし</p>';
         } else if (mode === 'menu') {
-            // 当月のsalesからメニュー別集計
+            // 月別セレクターをメニューモードでも生成
+            const monthSet = {};
+            allSales.forEach(s => {
+                const d = s.timestamp.toDate();
+                const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                const label = `${d.getFullYear()}年${d.getMonth()+1}月`;
+                monthSet[key] = label;
+            });
+            const sel2 = document.getElementById('month-selector');
+            const currentVal2 = sel2.value;
             const now2 = new Date();
+            const defaultKey2 = `${now2.getFullYear()}-${String(now2.getMonth()+1).padStart(2,'0')}`;
+            sel2.innerHTML = Object.keys(monthSet).sort().reverse().map(k =>
+                `<option value="${k}" ${(currentVal2||defaultKey2)===k?'selected':''}>${monthSet[k]}</option>`
+            ).join('');
+            const [selY2, selM2] = sel2.value.split('-').map(Number);
             const menuSales = allSales.filter(s => {
                 const d = s.timestamp.toDate();
-                return d.getFullYear() === now2.getFullYear() && d.getMonth() === now2.getMonth();
+                return d.getFullYear() === selY2 && d.getMonth()+1 === selM2;
             });
             const itemMap = {};
             menuSales.forEach(s => {
@@ -629,16 +643,16 @@ async function showAdmin(mode) {
                 (s.items || []).forEach(item => {
                     if (!itemMap[item.name]) itemMap[item.name] = { qty: 0, amount: 0 };
                     itemMap[item.name].qty += item.qty;
-                    itemMap[item.name].amount += Math.floor(item.price * item.qty * (1 + item.rate));
+                    itemMap[item.name].amount += Math.floor(item.price * item.qty * (1 + (item.rate || 0.10)));
                 });
             });
-            const now2obj = new Date();
-            const monthLabel = `${now2obj.getFullYear()}年${now2obj.getMonth()+1}月`;
+            const monthLabel = `${selY2}年${selM2}月`;
             const sortedItems = Object.entries(itemMap).sort((a,b) => b[1].qty - a[1].qty);
             list.innerHTML = `<div style="padding:12px 15px; background:#f8f8f8; font-size:13px; color:#666; border-bottom:1px solid #eee;">📅 ${monthLabel} のメニュー別集計（注文数順）</div>` +
                 (sortedItems.map(([name, d], i) =>
                     `<div class="sale-card"><div class="sale-time-row"><span class="sale-time" style="font-size:14px;">${i+1}. ${name}</span></div><div class="sale-detail-info">注文数: ${d.qty}点</div><div class="sale-total-line"><span class="sale-price-big">¥${d.amount.toLocaleString()}</span></div></div>`
                 ).join('') || '<p style="text-align:center; padding:50px;">データなし</p>');
+            document.getElementById('sum-count').innerText = menuSales.length;
         }
         document.getElementById('sum-total').innerText = total.toLocaleString();
         document.getElementById('sum-guests').innerText = guests;

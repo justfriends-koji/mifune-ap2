@@ -59,8 +59,8 @@ footer { width: 100%; display: flex; flex-direction: column; z-index: 100; box-s
 .sale-total-line { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
 .sale-price-big { font-size: 24px; font-weight: bold; color: var(--primary); }
 .btn-del-sale { background: var(--danger); color: white; border: none; padding: 8px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; }
-.report-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; background: #fff; border-bottom: 1px solid #ddd; flex-shrink: 0; }
-.btn-report { background: var(--info); color: #fff; border: none; padding: 22px 0; border-radius: 12px; font-weight: bold; font-size: 17px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; }
+.report-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 12px 15px; background: #fff; border-bottom: 1px solid #ddd; flex-shrink: 0; }
+.btn-report { background: var(--info); color: #fff; border: none; padding: 18px 0; border-radius: 12px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; }
 .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: center; padding: 20px 0; }
 .modal { background: #fff; width: 90%; max-width: 340px; border-radius: 20px; padding: 20px; text-align: center; position: relative; max-height: 90dvh; overflow-y: auto; }
 .receipt-sample { background: #fff; padding: 15px; color: #000; font-family: monospace; text-align: left; font-size: 11px; border: 1px dashed #ccc; width: 100%; }
@@ -246,7 +246,7 @@ window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tabl
   <select id="month-selector" onchange="showAdmin(['nav-menu','nav-dates','nav-dow','nav-month'].map(id=>({id,el:document.getElementById(id)})).find(x=>x.el&&x.el.classList.contains('active'))?.id?.replace('nav-','') || 'month')" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:15px; flex:1;"></select>
 </div>
 <div id="admin-summary-area" style="padding:15px; background:var(--dark); color:#fff; display:flex; justify-content:space-around; text-align:center; font-size:13px;"><div>件数<br><span id="sum-count" style="font-size:20px; font-weight:bold;">0</span></div><div>客数<br><span id="sum-guests" style="font-size:20px; font-weight:bold;">0</span></div><div>合計<br>¥<span id="sum-total" style="font-size:20px; font-weight:bold;">0</span></div></div>
-<div class="report-btns"><button class="btn-report" onclick="printReport('day')">日計印刷</button><button class="btn-report" onclick="printReport('month')" style="background:var(--accent);">月計印刷</button></div>
+<div class="report-btns"><button class="btn-report" onclick="printReport('day')">日計印刷</button><button class="btn-report" onclick="printReport('month')" style="background:var(--accent);">月計印刷</button><button class="btn-report" onclick="exportCSV()" style="background:#8e44ad;">CSV出力</button></div>
 <div class="list-container" id="sales-list" style="background:#f4f4f4; padding:5px 0;"></div>
 </div>
 
@@ -657,6 +657,42 @@ async function showAdmin(mode) {
         document.getElementById('sum-guests').innerText = guests;
         document.getElementById('sum-count').innerText = sales.length;
     } catch(e) { list.innerHTML = `<p style="color:red; padding:20px;">エラー: ${e.message}</p>`; }
+}
+
+async function exportCSV() {
+    // 対象月を選択
+    const now = new Date();
+    const options = [];
+    for (let i = -11; i <= 0; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        const label = `${d.getFullYear()}年${d.getMonth()+1}月`;
+        options.push({ key, label });
+    }
+    const chosen = await showPickerModal('CSV出力 - 対象月を選択', options.reverse());
+    if (!chosen) return;
+    const [selY, selM] = chosen.split('-').map(Number);
+    const allSales = await window.getSalesData('dow');
+    const sales = allSales.filter(s => {
+        const d = s.timestamp.toDate();
+        return d.getFullYear() === selY && d.getMonth()+1 === selM;
+    }).sort((a, b) => a.timestamp - b.timestamp);
+    if (sales.length === 0) return alert("データなし");
+
+    const header = '日時,席,客数,入店,退店,税込合計';
+    const rows = sales.map(s => {
+        const d = s.timestamp.toDate();
+        const dateStr = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${s.checkout}`;
+        return `${dateStr},${s.tableId},${s.guests}名,${s.checkin},${s.checkout},${s.total}`;
+    });
+    const csv = '\uFEFF' + header + '\n' + rows.join('\n'); // BOM付きでExcel対応
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `三船売上_${selY}年${selM}月.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 async function printReport(mode) {

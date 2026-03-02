@@ -123,11 +123,21 @@ if(!cloudIds.includes(tId)) {
 localStorage.removeItem('history_'+tId); localStorage.removeItem('guests_'+tId); localStorage.removeItem('checkin_'+tId);
 }
 });
-snapshot.forEach((doc) => {
-const tId = doc.id; const data = doc.data();
+snapshot.forEach((docSnap) => {
+const tId = docSnap.id; const data = docSnap.data();
 localStorage.setItem('history_'+tId, JSON.stringify(data.history || []));
 localStorage.setItem('guests_'+tId, data.guests || 0);
 localStorage.setItem('checkin_'+tId, data.checkin || "--:--");
+
+// ▼ モバイルオーダー検知・自動キッチン印刷
+const mobileOrders = data.mobileOrders || [];
+if (mobileOrders.length > 0) {
+    autoKitchenPrint(tId, mobileOrders);
+    // 処理済みとしてmobileOrdersをクリア
+    setDoc(doc(db, "tables", tId), { mobileOrders: [] }, { merge: true });
+}
+// ▲ モバイルオーダー検知
+
 });
 renderIndex(); updateFooter();
 });
@@ -140,6 +150,37 @@ checkin: localStorage.getItem('checkin_' + tableId) || "--:--",
 updatedAt: Timestamp.now()
 });
 };
+
+// ▼▼▼ モバイルオーダー自動キッチン印刷 ▼▼▼
+function autoKitchenPrint(tableId, mobileOrders) {
+    const b = new StarWebPrintBuilder();
+    let r = '';
+    const checkin = localStorage.getItem('checkin_' + tableId) || '--:--';
+    mobileOrders.forEach(order => {
+        order.items.forEach(item => {
+            r += b.createInitializationElement();
+            r += b.createAlignmentElement({position: 'left'});
+            r += b.createTextElement({data: `[${tableId}]📱 ${item.name} ${item.qty}\n`, width: 2, height: 2});
+            r += b.createTextElement({data: `--------------------------\n`});
+            r += b.createTextElement({data: `${new Date().toLocaleTimeString()} (入店:${checkin})\n`});
+            r += b.createCutPaperElement({type: 'partial'});
+        });
+        // 注文履歴に追記
+        const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
+        order.items.forEach(item => {
+            const exist = hist.find(h => h.name === item.name);
+            if (exist) exist.qty += item.qty;
+            else hist.push({ name: item.name, price: item.price, qty: item.qty, rate: 0.10 });
+        });
+        localStorage.setItem('history_' + tableId, JSON.stringify(hist));
+    });
+    if (!r) return;
+    const t = new StarWebPrintTrader({url: PRINTER_URL});
+    t.onReceive = async () => { await window.cloudSync(tableId); };
+    t.onError = () => { console.warn('モバイルオーダー印刷エラー'); };
+    t.sendMessage({request: r});
+}
+// ▲▲▲ モバイルオーダー自動キッチン印刷 ▲▲▲
 
 window.saveSaleToCloud = async (tableId) => {
 const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');

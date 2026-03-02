@@ -434,6 +434,7 @@ window.changeCat = (el, idx) => {
     document.querySelectorAll('.cat').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
     renderItems(menuData[idx]);
+    document.getElementById('item-grid').scrollTop = 0;
 };
 
 function renderItems(category) {

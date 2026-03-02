@@ -132,9 +132,10 @@ localStorage.setItem('checkin_'+tId, data.checkin || "--:--");
 // ▼ モバイルオーダー検知・自動キッチン印刷
 const mobileOrders = data.mobileOrders || [];
 if (mobileOrders.length > 0) {
-    autoKitchenPrint(tId, mobileOrders);
-    // 処理済みとしてmobileOrdersをクリア
-    setDoc(doc(db, "tables", tId), { mobileOrders: [] }, { merge: true });
+    // 先にクリアしてから印刷（二重印刷防止）
+    setDoc(doc(db, "tables", tId), { mobileOrders: [] }, { merge: true }).then(() => {
+        autoKitchenPrint(tId, mobileOrders);
+    });
 }
 // ▲ モバイルオーダー検知
 
@@ -156,8 +157,15 @@ function autoKitchenPrint(tableId, mobileOrders) {
     const b = new StarWebPrintBuilder();
     let r = '';
     const checkin = localStorage.getItem('checkin_' + tableId) || '--:--';
+
+    // 先にhistoryへ追記してcloudSync（印刷失敗でも注文は反映）
+    const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
     mobileOrders.forEach(order => {
         order.items.forEach(item => {
+            const exist = hist.find(h => h.name === item.name);
+            if (exist) exist.qty += item.qty;
+            else hist.push({ name: item.name, price: item.price, qty: item.qty, rate: item.rate || 0.10 });
+            // キッチン伝票作成
             r += b.createInitializationElement();
             r += b.createAlignmentElement({position: 'left'});
             r += b.createTextElement({data: `[${tableId}]📱 ${item.name} ${item.qty}\n`, width: 2, height: 2});
@@ -165,18 +173,12 @@ function autoKitchenPrint(tableId, mobileOrders) {
             r += b.createTextElement({data: `${new Date().toLocaleTimeString()} (入店:${checkin})\n`});
             r += b.createCutPaperElement({type: 'partial'});
         });
-        // 注文履歴に追記
-        const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
-        order.items.forEach(item => {
-            const exist = hist.find(h => h.name === item.name);
-            if (exist) exist.qty += item.qty;
-            else hist.push({ name: item.name, price: item.price, qty: item.qty, rate: 0.10 });
-        });
-        localStorage.setItem('history_' + tableId, JSON.stringify(hist));
     });
+    localStorage.setItem('history_' + tableId, JSON.stringify(hist));
+    window.cloudSync(tableId); // 印刷結果に関わらず即反映
+
     if (!r) return;
     const t = new StarWebPrintTrader({url: PRINTER_URL});
-    t.onReceive = async () => { await window.cloudSync(tableId); };
     t.onError = () => { console.warn('モバイルオーダー印刷エラー'); };
     t.sendMessage({request: r});
 }

@@ -178,7 +178,7 @@ function autoKitchenPrint(tableId, mobileOrders) {
     window.cloudSync(tableId); // 印刷結果に関わらず即反映
 
     if (!r) return;
-    const t = new StarWebPrintTrader({url: PRINTER_URL});
+    const t = new StarWebPrintTrader({url: KITCHEN_PRINTER_URL});
     t.onError = () => { console.warn('モバイルオーダー印刷エラー'); };
     t.sendMessage({request: r});
 }
@@ -340,7 +340,7 @@ const rawData = [
     ["国産豚のロースカツ", "一品料理", 700],
     ["コーンバター・チーズカップ", "一品料理", 500],
     ["生ハムの軟白ねぎ包み(岩塩付き)", "一品料理", 650],
-    ["塩キャベツ", "一品料理", 350],
+    ["塩キャベキュ", "一品料理", 350],
     ["漬物", "一品料理", 350],
     ["枝豆", "一品料理", 350],
     ["冷奴", "一品料理", 400],
@@ -548,6 +548,8 @@ async function buildPopularCategory() {
 const tablesL = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
 let currentTable = "", currentCart = [], tempGuestCount = "0";
 const PRINTER_URL = 'http://192.168.1.XX/StarWebPRNT/SendMessage';
+const KITCHEN_PRINTER_URL = PRINTER_URL;  // キッチンプリンター（将来分離）
+const RECEIPT_PRINTER_URL = PRINTER_URL;  // レシートプリンター（将来分離）
 const isTestMode = true;
 
 function hideAll() { document.querySelectorAll('.view').forEach(v => v.style.display = 'none'); }
@@ -753,7 +755,7 @@ async function printReport(mode) {
         sorted.forEach(([key, s]) => { r += b.createTextElement({data: `${s.label}\n  ${s.c}件 / ${s.g}名 / ¥${s.t.toLocaleString()}\n`}); });
         r += b.createTextElement({data: `--------------------------------\n`});
         r += b.createCutPaperElement({type: 'partial'});
-        const t = new StarWebPrintTrader({url: PRINTER_URL}); t.sendMessage({request: r}); alert("印刷しました");
+        const t = new StarWebPrintTrader({url: RECEIPT_PRINTER_URL}); t.sendMessage({request: r}); alert("印刷しました");
     } else {
         // 日計：過去10日分の選択肢
         const options = [];
@@ -777,7 +779,7 @@ async function printReport(mode) {
         r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n【日計】\n`, width:2, height:2});
         r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `${dateLabel}\n--------------------------------\n売上: ¥${total.toLocaleString()}\n客数: ${guests}名\n件数: ${sales.length}件\n--------------------------------\n`});
         r += b.createCutPaperElement({type: 'partial'});
-        const t = new StarWebPrintTrader({url: PRINTER_URL}); t.sendMessage({request: r}); alert("印刷しました");
+        const t = new StarWebPrintTrader({url: RECEIPT_PRINTER_URL}); t.sendMessage({request: r}); alert("印刷しました");
     }
 }
 
@@ -880,7 +882,7 @@ r += b.createTextElement({data: `--------------------------\n`});
 r += b.createTextElement({data: `${new Date().toLocaleTimeString()} (入店:${c})\n`});
 r += b.createCutPaperElement({type: 'partial'});
 });
-const t = new StarWebPrintTrader({url: PRINTER_URL});
+const t = new StarWebPrintTrader({url: KITCHEN_PRINTER_URL});
 t.onReceive = async () => {
 const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]');
 localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart)));
@@ -915,7 +917,7 @@ if(sub10 > 0) r += b.createTextElement({data: `10%対象: ¥${(sub10+tax10).toLo
 if(sub8 > 0)  r += b.createTextElement({data: `※8%対象: ¥${(sub8+tax8).toLocaleString()}   消費税: ¥${tax8.toLocaleString()}\n`});
 r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `\n[登録番号] T4430001061003\n株式会社Stag Beetle Corporation\n\n`}); r += b.createCutPaperElement({type: 'partial'});
 }
-const t = new StarWebPrintTrader({url: PRINTER_URL}); t.onReceive = async () => { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable); showIndex(); }; t.sendMessage({request: r});
+const t = new StarWebPrintTrader({url: RECEIPT_PRINTER_URL}); t.onReceive = async () => { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable); showIndex(); }; t.sendMessage({request: r});
 }
 
 // ▼▼▼ 領収書機能追加 ▼▼▼
@@ -983,7 +985,7 @@ function printRyoshuusho() {
     r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n札幌市白石区東札幌2条3丁目9-2\n登録番号 T4430001061003\n\n`});
     r += b.createCutPaperElement({type: 'partial'});
 
-    const t = new StarWebPrintTrader({url: PRINTER_URL});
+    const t = new StarWebPrintTrader({url: RECEIPT_PRINTER_URL});
     t.onReceive = () => { closeRyoshuusho(); alert("領収書を印刷しました"); };
     t.onError = () => { alert("プリンター接続エラー"); };
     t.sendMessage({request: r});

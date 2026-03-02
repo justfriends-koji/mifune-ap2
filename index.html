@@ -168,7 +168,7 @@ function autoKitchenPrint(tableId, mobileOrders) {
             // キッチン伝票作成
             r += b.createInitializationElement();
             r += b.createAlignmentElement({position: 'left'});
-            r += b.createTextElement({data: `[${tableId}]📱 ${item.name} ${item.qty}\n`, width: 2, height: 2});
+            r += b.createTextElement({data: `[${tableId}][M] ${item.name} ${item.qty}\n`, width: 2, height: 2});
             r += b.createTextElement({data: `--------------------------\n`});
             r += b.createTextElement({data: `${new Date().toLocaleTimeString()} (入店:${checkin})\n`});
             r += b.createCutPaperElement({type: 'partial'});

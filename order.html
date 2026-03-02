@@ -41,8 +41,11 @@ footer { width: 100%; z-index: 100; box-shadow: 0 -3px 10px rgba(0,0,0,0.1); fle
 .done-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; padding: 30px; text-align: center; }
 .done-icon { font-size: 80px; }
 
-/* エラー */
-.error-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px; text-align: center; gap: 15px; }
+/* お会計確認 */
+.bill-wrap { flex: 1; overflow-y: auto; background: #fff; padding-bottom: 20px; }
+.bill-header { background: var(--dark); color: #fff; padding: 15px 20px; font-size: 13px; display: flex; justify-content: space-around; text-align: center; }
+.bill-row { display: flex; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #eee; font-size: 15px; }
+.bill-total { padding: 20px; text-align: right; border-top: 2px solid #eee; background: #fff; }
 </style>
 </head>
 <body>
@@ -66,9 +69,12 @@ footer { width: 100%; z-index: 100; box-shadow: 0 -3px 10px rgba(0,0,0,0.1); fle
     <div class="item-grid" id="item-grid"></div>
   </div>
   <footer>
-    <div class="footer-cart" onclick="showCart()">
-      <div>🛒 <span id="cart-count">0</span>点</div>
-      <div>注文を確認 ＞</div>
+    <div style="background:#fff; border-top:1px solid #eee; padding:8px 15px; display:flex; gap:8px;">
+      <div class="footer-cart" style="flex:1;" onclick="showCart()">
+        <div>🛒 <span id="cart-count">0</span>点</div>
+        <div>注文を確認 ＞</div>
+      </div>
+      <div style="background:var(--dark); color:#fff; padding:18px 12px; font-weight:bold; font-size:14px; border-radius:8px; cursor:pointer; white-space:nowrap;" onclick="showBill()">💴 お会計</div>
     </div>
   </footer>
 </div>
@@ -101,6 +107,27 @@ footer { width: 100%; z-index: 100; box-shadow: 0 -3px 10px rgba(0,0,0,0.1); fle
   </div>
 </div>
 
+<!-- お会計確認画面 -->
+<div id="screen-bill" class="screen">
+  <header>
+    <span style="cursor:pointer; font-size:22px;" onclick="showMenu()">＜</span>
+    <span>💴 お会計確認</span>
+    <span style="width:30px;"></span>
+  </header>
+  <div class="bill-header">
+    <div>件数<br><span id="bill-count" style="font-size:20px; font-weight:bold;">0</span>点</div>
+    <div>税込合計<br><span id="bill-grand" style="font-size:20px; font-weight:bold; color:var(--secondary);">¥0</span></div>
+  </div>
+  <div class="bill-wrap" id="bill-list"></div>
+  <div class="bill-total">
+    <div style="font-size:13px; color:#999; margin-bottom:4px;">10%対象 消費税: ¥<span id="bill-tax10">0</span></div>
+    <div style="font-size:13px; color:#999; margin-bottom:12px;">8%対象 消費税: ¥<span id="bill-tax8">0</span></div>
+    <div style="font-size:14px; color:#666;">税込合計</div>
+    <div style="font-size:36px; font-weight:bold; color:var(--primary);">¥<span id="bill-total">0</span></div>
+    <div style="font-size:12px; color:#999; margin-top:8px;">お会計はスタッフにお声がけください</div>
+  </div>
+</div>
+
 <!-- エラー画面 -->
 <div id="screen-error" class="screen">
   <header><span>🍗 三船 モバイルオーダー</span></header>
@@ -113,7 +140,7 @@ footer { width: 100%; z-index: 100; box-shadow: 0 -3px 10px rgba(0,0,0,0.1); fle
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, getDoc, updateDoc, arrayUnion, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, updateDoc, arrayUnion, onSnapshot, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDscuD0S3D66lcamtG4T26WLfZH8rjOy28",
@@ -492,6 +519,36 @@ window.submitOrder = async () => {
         updateCartCount();
         showScreen('screen-done');
     } catch(e) { showError('注文の送信に失敗しました'); }
+};
+
+window.showBill = async () => {
+    try {
+        const snap = await getDoc(doc(db, "tables", currentTable));
+        if (!snap.exists()) { showError('席情報が見つかりません'); return; }
+        const history = snap.data().history || [];
+        let sub10 = 0, tax10 = 0, sub8 = 0, tax8 = 0;
+        let totalQty = 0;
+        const billHtml = history.map(item => {
+            const linePrice = item.price * item.qty;
+            const lineTax = Math.floor(linePrice * item.rate);
+            const taxInc = linePrice + lineTax;
+            if (item.rate === 0.08) { sub8 += linePrice; tax8 += lineTax; }
+            else { sub10 += linePrice; tax10 += lineTax; }
+            totalQty += item.qty;
+            return `<div class="bill-row">
+                <div style="flex:1;">${item.name}<br><small style="color:#999;">¥${Math.floor(item.price*(1+item.rate)).toLocaleString()} × ${item.qty}</small></div>
+                <div style="font-weight:bold;">¥${taxInc.toLocaleString()}</div>
+            </div>`;
+        }).join('') || '<p style="text-align:center; padding:40px; color:#999;">注文履歴がありません</p>';
+        const grand = sub10 + tax10 + sub8 + tax8;
+        document.getElementById('bill-list').innerHTML = billHtml;
+        document.getElementById('bill-count').innerText = totalQty;
+        document.getElementById('bill-grand').innerText = '¥' + grand.toLocaleString();
+        document.getElementById('bill-total').innerText = grand.toLocaleString();
+        document.getElementById('bill-tax10').innerText = tax10.toLocaleString();
+        document.getElementById('bill-tax8').innerText = tax8.toLocaleString();
+        showScreen('screen-bill');
+    } catch(e) { showError('お会計情報の取得に失敗しました'); }
 };
 
 window.backToMenu = () => {

@@ -240,7 +240,7 @@ window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tabl
 
 <div id="view-admin" class="view">
 <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>売上管理</span></div><div style="font-size:12px; color:var(--danger);" onclick="logoutOwner()">終了</div></header>
-<div class="admin-nav"><div id="nav-day" class="admin-nav-btn active" onclick="showAdmin('day')">本日</div><div id="nav-dates" class="admin-nav-btn" onclick="showAdmin('dates')">日別</div><div id="nav-dow" class="admin-nav-btn" onclick="showAdmin('dow')">曜日別</div><div id="nav-month" class="admin-nav-btn" onclick="showAdmin('month')">月別</div></div>
+<div class="admin-nav"><div id="nav-day" class="admin-nav-btn active" onclick="showAdmin('day')">本日</div><div id="nav-dates" class="admin-nav-btn" onclick="showAdmin('dates')">日別</div><div id="nav-dow" class="admin-nav-btn" onclick="showAdmin('dow')">曜日別</div><div id="nav-month" class="admin-nav-btn" onclick="showAdmin('month')">月別</div><div id="nav-menu" class="admin-nav-btn" onclick="showAdmin('menu')">メニュー別</div></div>
 <div id="month-selector-area" style="display:none; align-items:center; gap:10px; background:#fff; padding:10px 15px; border-bottom:1px solid #ddd;">
   <span style="font-size:13px; color:#666;">表示月：</span>
   <select id="month-selector" onchange="showAdmin('month')" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:15px; flex:1;"></select>
@@ -317,7 +317,7 @@ const rawData = [
     ["国産豚のロースカツ", "一品料理", 700],
     ["コーンバター・チーズカップ", "一品料理", 500],
     ["生ハムの軟白ねぎ包み(岩塩付き)", "一品料理", 650],
-    ["塩キャベツ", "一品料理", 350],
+    ["塩キャベキュ", "一品料理", 350],
     ["漬物", "一品料理", 350],
     ["枝豆", "一品料理", 350],
     ["冷奴", "一品料理", 400],
@@ -538,7 +538,7 @@ async function showAdmin(mode) {
     window.showAdmin = showAdmin;
     hideAll(); document.getElementById('view-admin').style.display = 'flex';
     document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
-    const navId = mode==='month'?'month':mode==='dow'?'dow':mode==='dates'?'dates':'day';
+    const navId = mode==='month'?'month':mode==='dow'?'dow':mode==='dates'?'dates':mode==='menu'?'menu':'day';
     const navEl = document.getElementById('nav-' + navId);
     if(navEl) navEl.classList.add('active');
     // 月別セレクター表示制御
@@ -616,6 +616,29 @@ async function showAdmin(mode) {
             });
             const sorted = Object.values(dayMap).sort((a,b) => b.ts - a.ts);
             list.innerHTML = sorted.map(s => `<div class="sale-card"><div class="sale-time-row"><span class="sale-time" style="font-size:15px;">${s.label}</span></div><div class="sale-detail-info">件数: ${s.c} / 客数: ${s.g}名</div><div class="sale-total-line"><span class="sale-price-big">¥${s.t.toLocaleString()}</span></div></div>`).join('') || '<p style="text-align:center; padding:50px;">データなし</p>';
+        } else if (mode === 'menu') {
+            // 当月のsalesからメニュー別集計
+            const now2 = new Date();
+            const menuSales = allSales.filter(s => {
+                const d = s.timestamp.toDate();
+                return d.getFullYear() === now2.getFullYear() && d.getMonth() === now2.getMonth();
+            });
+            const itemMap = {};
+            menuSales.forEach(s => {
+                total += s.total; guests += s.guests;
+                (s.items || []).forEach(item => {
+                    if (!itemMap[item.name]) itemMap[item.name] = { qty: 0, amount: 0 };
+                    itemMap[item.name].qty += item.qty;
+                    itemMap[item.name].amount += Math.floor(item.price * item.qty * (1 + item.rate));
+                });
+            });
+            const now2obj = new Date();
+            const monthLabel = `${now2obj.getFullYear()}年${now2obj.getMonth()+1}月`;
+            const sortedItems = Object.entries(itemMap).sort((a,b) => b[1].qty - a[1].qty);
+            list.innerHTML = `<div style="padding:12px 15px; background:#f8f8f8; font-size:13px; color:#666; border-bottom:1px solid #eee;">📅 ${monthLabel} のメニュー別集計（注文数順）</div>` +
+                (sortedItems.map(([name, d], i) =>
+                    `<div class="sale-card"><div class="sale-time-row"><span class="sale-time" style="font-size:14px;">${i+1}. ${name}</span></div><div class="sale-detail-info">注文数: ${d.qty}点</div><div class="sale-total-line"><span class="sale-price-big">¥${d.amount.toLocaleString()}</span></div></div>`
+                ).join('') || '<p style="text-align:center; padding:50px;">データなし</p>');
         }
         document.getElementById('sum-total').innerText = total.toLocaleString();
         document.getElementById('sum-guests').innerText = guests;

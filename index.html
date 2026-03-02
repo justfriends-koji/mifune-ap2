@@ -727,20 +727,16 @@ function showPickerModal(title, options) {
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
         const modal = document.createElement('div');
-        modal.style.cssText = 'background:#fff;border-radius:16px;padding:24px;width:85%;max-width:340px;';
+        modal.style.cssText = 'background:#fff;border-radius:16px;padding:24px;width:85%;max-width:340px;max-height:80vh;overflow-y:auto;';
         modal.innerHTML = `<div style="font-weight:bold;font-size:16px;margin-bottom:16px;text-align:center;">${title}</div>` +
-            options.map(o => `<button onclick="this.closest('.picker-modal').dataset.val='${o.key}'" style="width:100%;padding:14px;margin-bottom:10px;border:2px solid #eee;border-radius:12px;font-size:15px;background:#fff;cursor:pointer;" class="picker-opt">${o.label}</button>`).join('') +
-            `<button onclick="this.closest('.picker-modal').dataset.val='cancel'" style="width:100%;padding:12px;border:none;border-radius:12px;font-size:14px;background:#eee;color:#666;cursor:pointer;margin-top:4px;">キャンセル</button>`;
-        modal.className = 'picker-modal';
-        modal.querySelectorAll('.picker-opt').forEach(btn => {
+            options.map((o, idx) => `<button data-key="${o.key}" style="width:100%;padding:14px;margin-bottom:10px;border:2px solid #eee;border-radius:12px;font-size:15px;background:#fff;cursor:pointer;">${o.label}</button>`).join('') +
+            `<button data-key="cancel" style="width:100%;padding:12px;border:none;border-radius:12px;font-size:14px;background:#eee;color:#666;cursor:pointer;margin-top:4px;">キャンセル</button>`;
+        modal.querySelectorAll('button').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.body.removeChild(overlay);
-                resolve(btn.getAttribute('onclick').match(/'([^']+)'/)[1]);
+                const key = btn.getAttribute('data-key');
+                resolve(key === 'cancel' ? null : key);
             });
-        });
-        modal.querySelector('button:last-child').addEventListener('click', () => {
-            document.body.removeChild(overlay);
-            resolve(null);
         });
         overlay.appendChild(modal);
         document.body.appendChild(overlay);

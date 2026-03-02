@@ -507,18 +507,18 @@ window.submitOrder = async () => {
         const snap = await getDoc(tableRef);
         if (!snap.exists()) { showError('席情報が見つかりません'); return; }
 
-        // mobileOrder フィールドに追記（POSが検知して印刷）
-        await updateDoc(tableRef, {
-            mobileOrders: arrayUnion({
-                items: cart,
-                orderedAt: Timestamp.now()
-            })
+        // 既存のmobileOrdersに追記
+        const existing = snap.data().mobileOrders || [];
+        existing.push({
+            items: cart.map(i => ({ name: i.name, price: i.price, qty: i.qty, rate: i.rate })),
+            orderedAt: new Date().toISOString()
         });
+        await updateDoc(tableRef, { mobileOrders: existing });
 
         cart = [];
         updateCartCount();
         showScreen('screen-done');
-    } catch(e) { showError('注文の送信に失敗しました'); }
+    } catch(e) { console.error(e); showError('注文の送信に失敗しました'); }
 };
 
 window.showBill = async () => {

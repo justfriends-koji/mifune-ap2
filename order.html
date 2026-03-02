@@ -369,6 +369,15 @@ rawData.forEach(r => {
 
 let currentTable = '';
 let cart = [];
+let imageMap = {};
+
+// 画像データをFirestoreから取得
+async function loadImageMap() {
+    try {
+        const snap = await getDoc(doc(db, "config", "menuImages"));
+        imageMap = snap.exists() ? (snap.data().images || {}) : {};
+    } catch(e) { imageMap = {}; }
+}
 
 // URLパラメータからテーブル取得
 const urlParams = new URLSearchParams(location.search);
@@ -392,7 +401,6 @@ function renderTableSelect() {
 }
 
 window.selectTable = async (tId) => {
-    // テーブルがアクティブ（チェックイン済み）か確認
     try {
         const snap = await getDoc(doc(db, "tables", tId));
         if (!snap.exists()) {
@@ -401,6 +409,7 @@ window.selectTable = async (tId) => {
         }
         currentTable = tId;
         cart = [];
+        await loadImageMap();
         initMenu();
     } catch(e) { showError(); }
 };
@@ -429,8 +438,13 @@ function renderItems(category) {
     const grid = document.getElementById('item-grid');
     grid.innerHTML = category.items.map((item, idx) => {
         const taxInc = Math.floor(item.p * 1.10);
-        return `<div class="item-card">
-            <div>
+        const imgUrl = imageMap[item.n];
+        const imgHtml = imgUrl
+            ? `<img src="${imgUrl}" alt="${item.n}" style="width:100%; height:120px; object-fit:cover; border-radius:8px 8px 0 0; display:block;" onerror="this.style.display='none'">`
+            : '';
+        return `<div class="item-card" style="${imgUrl ? 'padding-top:0;' : ''}">
+            ${imgHtml}
+            <div style="${imgUrl ? 'padding-top:10px;' : ''}">
                 <div class="item-name">${item.n}</div>
                 <div class="item-price">¥${item.p.toLocaleString()} <small style="font-size:10px;color:#999;">(税込¥${taxInc.toLocaleString()})</small></div>
             </div>

@@ -243,7 +243,7 @@ window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tabl
 <div class="admin-nav"><div id="nav-day" class="admin-nav-btn active" onclick="showAdmin('day')">本日</div><div id="nav-dates" class="admin-nav-btn" onclick="showAdmin('dates')">日別</div><div id="nav-dow" class="admin-nav-btn" onclick="showAdmin('dow')">曜日別</div><div id="nav-month" class="admin-nav-btn" onclick="showAdmin('month')">月別</div><div id="nav-menu" class="admin-nav-btn" onclick="showAdmin('menu')">メニュー別</div></div>
 <div id="month-selector-area" style="display:none; align-items:center; gap:10px; background:#fff; padding:10px 15px; border-bottom:1px solid #ddd;">
   <span style="font-size:13px; color:#666;">表示月：</span>
-  <select id="month-selector" onchange="showAdmin(document.querySelector('.admin-nav-btn.active').id === 'nav-menu' ? 'menu' : 'month')" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:15px; flex:1;"></select>
+  <select id="month-selector" onchange="showAdmin(['nav-menu','nav-dates','nav-dow','nav-month'].map(id=>({id,el:document.getElementById(id)})).find(x=>x.el&&x.el.classList.contains('active'))?.id?.replace('nav-','') || 'month')" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:15px; flex:1;"></select>
 </div>
 <div id="admin-summary-area" style="padding:15px; background:var(--dark); color:#fff; display:flex; justify-content:space-around; text-align:center; font-size:13px;"><div>件数<br><span id="sum-count" style="font-size:20px; font-weight:bold;">0</span></div><div>客数<br><span id="sum-guests" style="font-size:20px; font-weight:bold;">0</span></div><div>合計<br>¥<span id="sum-total" style="font-size:20px; font-weight:bold;">0</span></div></div>
 <div class="report-btns"><button class="btn-report" onclick="printReport('day')">日計印刷</button><button class="btn-report" onclick="printReport('month')" style="background:var(--accent);">月計印刷</button></div>
@@ -543,13 +543,13 @@ async function showAdmin(mode) {
     if(navEl) navEl.classList.add('active');
     // 月別セレクター表示制御
     const selArea = document.getElementById('month-selector-area');
-    selArea.style.display = (mode === 'month' || mode === 'menu') ? 'flex' : 'none';
+    selArea.style.display = (mode === 'month' || mode === 'menu' || mode === 'dates' || mode === 'dow') ? 'flex' : 'none';
     const list = document.getElementById('sales-list'); list.innerHTML = '<p style="text-align:center; padding:50px;">集計中...</p>';
     try {
         // 全データ取得（dow=全件）
         const allSales = await window.getSalesData('dow');
-        // 月別セレクターを全データから動的生成
-        if (mode === 'month') {
+        // 月別セレクターを全データから動的生成（month/dates/dow/menu共通）
+        if (mode === 'month' || mode === 'dates' || mode === 'dow' || mode === 'menu') {
             const monthSet = {};
             allSales.forEach(s => {
                 const d = s.timestamp.toDate();
@@ -568,13 +568,12 @@ async function showAdmin(mode) {
         // 表示対象のsalesをフィルタ
         let sales;
         const now = new Date();
-        if (mode === 'month') {
-            const [selY, selM] = document.getElementById('month-selector').value.split('-').map(Number);
+        const getSelectedYM = () => document.getElementById('month-selector').value.split('-').map(Number);
+        if (mode === 'month' || mode === 'dates' || mode === 'dow') {
+            const [selY, selM] = getSelectedYM();
             sales = allSales.filter(s => { const d = s.timestamp.toDate(); return d.getFullYear()===selY && d.getMonth()+1===selM; });
         } else if (mode === 'day') {
             sales = allSales.filter(s => s.timestamp.toDate().toDateString() === now.toDateString());
-        } else if (mode === 'dates' || mode === 'dow') {
-            sales = allSales.filter(s => { const d = s.timestamp.toDate(); return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth(); });
         } else {
             sales = allSales;
         }

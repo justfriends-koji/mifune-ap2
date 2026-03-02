@@ -264,10 +264,10 @@ window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tabl
     <div style="text-align:left; margin-bottom:8px; font-size:14px; font-weight:bold; color:#555;">商品名</div>
     <input id="custom-name" type="text" placeholder="商品名を入力" style="width:100%; padding:14px; border:1px solid #ddd; border-radius:10px; font-size:16px; margin-bottom:16px; box-sizing:border-box;">
     <div style="text-align:left; margin-bottom:8px; font-size:14px; font-weight:bold; color:#555;">価格と数量</div>
-    <div style="display:flex; gap:10px; margin-bottom:16px;">
-        <input id="custom-price" type="number" placeholder="価格" style="flex:1; padding:14px; border:1px solid #ddd; border-radius:10px; font-size:16px;">
-        <span style="line-height:50px; color:#999;">×</span>
-        <input id="custom-qty" type="number" placeholder="数量" value="1" style="flex:1; padding:14px; border:1px solid #ddd; border-radius:10px; font-size:16px;">
+    <div style="display:flex; gap:10px; margin-bottom:16px; align-items:center;">
+        <input id="custom-price" type="number" placeholder="価格" style="flex:2; padding:14px; border:1px solid #ddd; border-radius:10px; font-size:16px;">
+        <span style="color:#999; flex-shrink:0;">×</span>
+        <input id="custom-qty" type="number" placeholder="数量" value="1" style="width:70px; flex-shrink:0; padding:14px; border:1px solid #ddd; border-radius:10px; font-size:16px;">
     </div>
     <div style="text-align:left; margin-bottom:8px; font-size:14px; font-weight:bold; color:#555;">消費税率</div>
     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:20px;">

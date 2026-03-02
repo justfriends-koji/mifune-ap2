@@ -440,19 +440,21 @@ function renderItems(category) {
         const taxInc = Math.floor(item.p * 1.10);
         const imgUrl = imageMap[item.n];
         const imgHtml = imgUrl
-            ? `<img src="${imgUrl}" alt="${item.n}" style="width:100%; height:120px; object-fit:cover; border-radius:8px 8px 0 0; display:block;" onerror="this.style.display='none'">`
+            ? `<img src="${imgUrl}" alt="${item.n}" style="width:100%; height:110px; object-fit:cover; display:block; flex-shrink:0;" onerror="this.style.display='none'">`
             : '';
-        return `<div class="item-card" style="${imgUrl ? 'padding-top:0;' : ''}">
+        return `<div class="item-card" style="padding:0; display:flex; flex-direction:column; min-height:180px;">
             ${imgHtml}
-            <div style="${imgUrl ? 'padding-top:10px;' : ''}">
-                <div class="item-name">${item.n}</div>
-                <div class="item-price">¥${item.p.toLocaleString()} <small style="font-size:10px;color:#999;">(税込¥${taxInc.toLocaleString()})</small></div>
-            </div>
-            <div class="qty-ctrl">
-                <div class="btn-circle" onclick="changeQty('mq${idx}',-1)">-</div>
-                <span id="mq${idx}" style="font-weight:bold;min-width:18px;text-align:center;">1</span>
-                <div class="btn-circle" onclick="changeQty('mq${idx}',1)">+</div>
-                <button class="btn-add" onclick="addToCart('${item.n.replace(/'/g,"\\'")}',${item.p},'mq${idx}')">追加</button>
+            <div style="padding:10px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
+                <div>
+                    <div class="item-name">${item.n}</div>
+                    <div class="item-price">¥${item.p.toLocaleString()} <small style="font-size:10px;color:#999;">(税込¥${taxInc.toLocaleString()})</small></div>
+                </div>
+                <div class="qty-ctrl">
+                    <div class="btn-circle" onclick="changeQty('mq${idx}',-1)">-</div>
+                    <span id="mq${idx}" style="font-weight:bold;min-width:18px;text-align:center;">1</span>
+                    <div class="btn-circle" onclick="changeQty('mq${idx}',1)">+</div>
+                    <button class="btn-add" onclick="addToCart('${item.n.replace(/'/g,"\\'")}',${item.p},'mq${idx}')">追加</button>
+                </div>
             </div>
         </div>`;
     }).join('');

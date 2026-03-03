@@ -991,7 +991,7 @@ closeReceiptChoice(); const hist = JSON.parse(localStorage.getItem('history_'+cu
 const b = new StarWebPrintBuilder(); let r = b.createInitializationElement(); r += b.createPeripheralElement({channel: 1, pulse: 200});
 if(doPrint) {
 let sub8 = 0, tax8 = 0, sub10 = 0, tax10 = 0;
-r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥\n三船 東札幌店\n`, width: 2, height: 2}); r += b.createTextElement({data: `札幌市白石区東札幌2条3丁目9-2\n\n`}); r += b.createAlignmentElement({position: 'left'});
+r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥\n三船 東札幌店\n`, width: 2, height: 2}); r += b.createTextElement({data: `札幌市白石区東札幌2条3丁目9-2\nTEL: 011-816-8881\n\n`}); r += b.createAlignmentElement({position: 'left'});
 r += b.createTextElement({data: `日時: ${new Date().toLocaleString()}\n席: ${currentTable} 客: ${g}名 入店: ${c}\n--------------------------------\n`});
 hist.forEach(i => {
     const l = i.price * i.qty;
@@ -1084,7 +1084,7 @@ function printRyoshuusho() {
     r += b.createTextElement({data: `（内訳）\n税抜合計: ¥${sub.toLocaleString()}\n消費税:   ¥${tax.toLocaleString()}\n`});
     r += b.createTextElement({data: `--------------------------------\n`});
     r += b.createAlignmentElement({position: 'center'});
-    r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n札幌市白石区東札幌2条3丁目9-2\n登録番号 T4430001061003\n\n`});
+    r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n札幌市白石区東札幌2条3丁目9-2\nTEL: 011-816-8881\n登録番号 T4430001061003\n\n`});
     r += b.createCutPaperElement({type: 'partial'});
 
     const t = new StarWebPrintTrader({url: RECEIPT_PRINTER_URL});

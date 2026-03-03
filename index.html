@@ -293,7 +293,7 @@ window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tabl
         <input id="cash-received" type="number" placeholder="0" oninput="calcChange()" style="flex:1; min-width:0; padding:6px 8px; border:2px solid var(--primary); border-radius:8px; font-size:16px; text-align:right; font-weight:bold; box-sizing:border-box;">
         <span style="font-size:13px; color:#555; white-space:nowrap;">円</span>
     </div>
-    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;" id="quick-cash-btns"></div>
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; overflow:hidden;" id="quick-cash-btns"></div>
     <div style="background:#f8f8f8; border-radius:10px; padding:8px 12px; display:flex; align-items:center; justify-content:space-between;">
         <div style="font-size:12px; color:#999;">お釣り</div>
         <div id="change-amount" style="font-size:28px; font-weight:bold; color:var(--accent);">-</div>
@@ -960,7 +960,7 @@ function buildQuickCashBtns(total) {
     const auto = [100, 500, 1000, 5000, 10000].map(unit => Math.ceil(total / unit) * unit).filter((v,i,a) => a.indexOf(v)===i && v >= total).slice(0,3);
     const all = [...new Set([...auto, ...presets])].sort((a,b)=>a-b).slice(0,6);
     document.getElementById('quick-cash-btns').innerHTML = all.map(v =>
-        `<button onclick="document.getElementById('cash-received').value=${v}; calcChange();" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; background:#f8f8f8; font-size:13px; font-weight:bold; cursor:pointer;">¥${v.toLocaleString()}</button>`
+        `<button onclick="document.getElementById('cash-received').value=${v}; calcChange();" style="padding:6px 10px; border:1px solid #ddd; border-radius:8px; background:#f8f8f8; font-size:12px; font-weight:bold; cursor:pointer;">¥${v.toLocaleString()}</button>`
     ).join('');
 }
 

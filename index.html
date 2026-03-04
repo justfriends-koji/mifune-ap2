@@ -202,8 +202,8 @@ try {
         paymentMethod: paymentMethod || '現金',
         timestamp: Timestamp.now()
     });
-    await deleteDoc(doc(db, "tables", tableId));
-} catch (e) { console.warn("会計データ保存失敗:", e.message); }
+} catch (e) { console.warn("売上保存失敗:", e.message); }
+try { await deleteDoc(doc(db, "tables", tableId)); } catch(e) { console.warn("テーブル削除失敗:", e.message); }
 };
 
 window.getSalesData = async (mode) => {

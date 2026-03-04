@@ -140,7 +140,7 @@ if (data.nomihodaiStart) {
         : data.nomihodaiStart;
     localStorage.setItem('nomihodai_start_' + tId, ms);
     // サーバー時刻とデバイス時刻のズレを補正
-    serverTimeOffset = Date.now() - (typeof data.updatedAt?.toMillis === 'function' ? data.updatedAt.toMillis() : Date.now());
+    window.serverTimeOffset = Date.now() - (typeof data.updatedAt?.toMillis === 'function' ? data.updatedAt.toMillis() : Date.now());
 } else {
     localStorage.removeItem('nomihodai_start_' + tId);
 }
@@ -251,13 +251,13 @@ window.deleteDaySales = async (label) => {
 window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tableId)); };
 
 // サーバー時刻とのオフセット補正
-let serverTimeOffset = 0; // ms単位
+window.serverTimeOffset = 0; // ms単位
 
 window.cloudSyncNomi = async (tableId) => {
     try {
         const ref = doc(db, "tables", tableId);
         const serverTs = Timestamp.now();
-        serverTimeOffset = Date.now() - serverTs.toMillis(); // デバイス時刻のズレを記録
+        window.serverTimeOffset = Date.now() - serverTs.toMillis(); // デバイス時刻のズレを記録
         await setDoc(ref, { nomihodaiStart: serverTs }, { merge: true });
     } catch(e) { console.warn('nomihodai Firestore書き込み失敗:', e.message); }
 };
@@ -661,7 +661,7 @@ async function clearCountdown(tableId) {
 function getCountdownInfo(tableId) {
     const start = parseInt(localStorage.getItem('nomihodai_start_' + tableId));
     if (!start) return null;
-    const now = Date.now() - serverTimeOffset; // サーバー時刻ベースで計算
+    const now = Date.now() - window.serverTimeOffset; // サーバー時刻ベースで計算
     const elapsed = Math.floor((now - start) / 1000);
     const total = NOMIHODAI_MINUTES * 60;
     const remaining = total - elapsed;

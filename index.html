@@ -159,14 +159,12 @@ renderIndex(); updateFooter();
 
 window.cloudSync = async (tableId) => {
 try {
-const nomiStart = localStorage.getItem('nomihodai_start_' + tableId);
 await setDoc(doc(db, "tables", tableId), {
 history: JSON.parse(localStorage.getItem('history_' + tableId) || '[]'),
 guests: parseInt(localStorage.getItem('guests_' + tableId)) || 0,
 checkin: localStorage.getItem('checkin_' + tableId) || "--:--",
-nomihodaiStart: nomiStart ? new Date(parseInt(nomiStart)) : null,
 updatedAt: Timestamp.now()
-});
+}, { merge: true });
 } catch(e) { console.warn('cloudSync失敗:', e.message); }
 };
 
@@ -1096,7 +1094,7 @@ t += `<div class="receipt-hr"></div><div class="text-right text-bold">税込合�
 document.getElementById('sample-receipt-content').innerHTML = t;
 }
 function closeReceiptChoice() { document.getElementById('overlay-receipt').style.display = 'none'; }
-async function testSend() { if(currentCart.length === 0) return alert("空です"); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const merged = hist.concat(currentCart); localStorage.setItem('history_'+currentTable, JSON.stringify(merged)); localStorage.removeItem('cart_'+currentTable); currentCart = []; startCountdownIfNeeded(currentTable); if(window.cloudSync) await window.cloudSync(currentTable); hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter(); }
+async function testSend() { if(currentCart.length === 0) return alert("空です"); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const merged = hist.concat(currentCart); localStorage.setItem('history_'+currentTable, JSON.stringify(merged)); localStorage.removeItem('cart_'+currentTable); currentCart = []; await startCountdownIfNeeded(currentTable); if(window.cloudSync) await window.cloudSync(currentTable); hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter(); }
 async function testPay() { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable, currentPaymentMethod); showIndex(); }
 
 async function sendToKitchen() {
@@ -1115,7 +1113,7 @@ t.onReceive = async () => {
 const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]');
 localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart)));
 localStorage.removeItem('cart_'+currentTable); currentCart = [];
-startCountdownIfNeeded(currentTable);
+await startCountdownIfNeeded(currentTable);
 if(window.cloudSync) await window.cloudSync(currentTable);
 hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter();
 };

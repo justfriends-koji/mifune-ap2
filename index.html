@@ -135,7 +135,10 @@ localStorage.setItem('checkin_'+tId, data.checkin || "--:--");
 
 // 飲み放題カウントダウン同期
 if (data.nomihodaiStart) {
-    localStorage.setItem('nomihodai_start_' + tId, data.nomihodaiStart);
+    const ms = typeof data.nomihodaiStart.toMillis === 'function'
+        ? data.nomihodaiStart.toMillis()
+        : data.nomihodaiStart;
+    localStorage.setItem('nomihodai_start_' + tId, ms);
 } else {
     localStorage.removeItem('nomihodai_start_' + tId);
 }
@@ -161,7 +164,7 @@ await setDoc(doc(db, "tables", tableId), {
 history: JSON.parse(localStorage.getItem('history_' + tableId) || '[]'),
 guests: parseInt(localStorage.getItem('guests_' + tableId)) || 0,
 checkin: localStorage.getItem('checkin_' + tableId) || "--:--",
-nomihodaiStart: nomiStart ? parseInt(nomiStart) : null,
+nomihodaiStart: nomiStart ? new Date(parseInt(nomiStart)) : null,
 updatedAt: Timestamp.now()
 });
 } catch(e) { console.warn('cloudSync失敗:', e.message); }
@@ -247,9 +250,10 @@ window.deleteDaySales = async (label) => {
 };
 window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tableId)); };
 
-window.cloudSyncNomi = async (tableId, startTs) => {
+window.cloudSyncNomi = async (tableId) => {
     try {
-        await setDoc(doc(db, "tables", tableId), { nomihodaiStart: startTs }, { merge: true });
+        const ref = doc(db, "tables", tableId);
+        await setDoc(ref, { nomihodaiStart: Timestamp.now() }, { merge: true });
     } catch(e) { console.warn('nomihodai Firestore書き込み失敗:', e.message); }
 };
 </script>
@@ -627,14 +631,13 @@ async function startCountdownIfNeeded(tableId) {
     const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
     const hasNomi = hist.some(i => NOMIHODAI_ITEMS.includes(i.name));
     if (!hasNomi) return;
-    // すでにlocalStorageに値がある場合はスキップ（onSnapshot経由で既にセット済み）
     const key = 'nomihodai_start_' + tableId;
-    if (localStorage.getItem(key)) return;
-    // Firestoreに直接書き込む（onSnapshotで両デバイスに同期される）
-    const startTs = Date.now();
-    localStorage.setItem(key, startTs.toString());
+    if (localStorage.getItem(key)) return; // すでにonSnapshot経由でセット済み
+    // Firestoreサーバー時刻で記録（デバイス時刻のズレを防ぐ）
     try {
-        if (window.cloudSyncNomi) await window.cloudSyncNomi(tableId, startTs);
+        if (window.cloudSyncNomi) await window.cloudSyncNomi(tableId);
+        // onSnapshotが来るまでの暫定値（後でFirestore値で上書きされる）
+        localStorage.setItem(key, Date.now().toString());
     } catch(e) { console.warn('nomihodai sync失敗:', e.message); }
 }
 

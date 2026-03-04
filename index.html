@@ -246,6 +246,12 @@ window.deleteDaySales = async (label) => {
     }
 };
 window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tableId)); };
+
+window.cloudSyncNomi = async (tableId, startTs) => {
+    try {
+        await setDoc(doc(db, "tables", tableId), { nomihodaiStart: startTs }, { merge: true });
+    } catch(e) { console.warn('nomihodai Firestore書き込み失敗:', e.message); }
+};
 </script>
 
 <div id="overlay-add-table" class="overlay" style="display:none;">
@@ -617,14 +623,19 @@ const NOMIHODAI_MINUTES = 85; // ラストオーダーまでの分数
 let countdownInterval = null;
 let lastAlertedTable = {};
 
-function startCountdownIfNeeded(tableId) {
+async function startCountdownIfNeeded(tableId) {
     const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
     const hasNomi = hist.some(i => NOMIHODAI_ITEMS.includes(i.name));
     if (!hasNomi) return;
+    // すでにlocalStorageに値がある場合はスキップ（onSnapshot経由で既にセット済み）
     const key = 'nomihodai_start_' + tableId;
-    if (!localStorage.getItem(key)) {
-        localStorage.setItem(key, Date.now().toString());
-    }
+    if (localStorage.getItem(key)) return;
+    // Firestoreに直接書き込む（onSnapshotで両デバイスに同期される）
+    const startTs = Date.now();
+    localStorage.setItem(key, startTs.toString());
+    try {
+        if (window.cloudSyncNomi) await window.cloudSyncNomi(tableId, startTs);
+    } catch(e) { console.warn('nomihodai sync失敗:', e.message); }
 }
 
 function clearCountdown(tableId) {

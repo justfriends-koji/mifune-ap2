@@ -48,12 +48,26 @@ footer { width: 100%; z-index: 100; box-shadow: 0 -3px 10px rgba(0,0,0,0.1); fle
 .bill-header { background: var(--dark); color: #fff; padding: 15px 20px; font-size: 13px; display: flex; justify-content: space-around; text-align: center; }
 .bill-row { display: flex; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #eee; font-size: 15px; }
 .bill-total { padding: 20px; text-align: right; border-top: 2px solid #eee; background: #fff; }
+
+/* ローディング画面 */
+.loading-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; }
+.spinner { width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 
+<!-- ローディング画面 -->
+<div id="screen-loading" class="screen active">
+  <header><span>🍗 三船 モバイルオーダー</span></header>
+  <div class="loading-wrap">
+    <div class="spinner"></div>
+    <div style="color:#666;">読み込み中...</div>
+  </div>
+</div>
+
 <!-- テーブル選択画面（QRに番号が含まれていない場合） -->
-<div id="screen-table" class="screen active">
+<div id="screen-table" class="screen">
   <header><span>🍗 三船 モバイルオーダー</span></header>
   <p style="text-align:center; padding:20px; color:#666;">席番号を選んでください</p>
   <div class="table-grid" id="table-grid"></div>
@@ -133,7 +147,7 @@ footer { width: 100%; z-index: 100; box-shadow: 0 -3px 10px rgba(0,0,0,0.1); fle
 <!-- エラー画面 -->
 <div id="screen-error" class="screen">
   <header><span>🍗 三船 モバイルオーダー</span></header>
-  <div class="error-wrap">
+  <div class="done-wrap">
     <div style="font-size:60px;">⚠️</div>
     <div style="font-size:20px; font-weight:bold;" id="error-msg">エラーが発生しました</div>
     <div style="color:#666; font-size:14px;">スタッフにお声がけください</div>
@@ -142,6 +156,7 @@ footer { width: 100%; z-index: 100; box-shadow: 0 -3px 10px rgba(0,0,0,0.1); fle
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, updateDoc, arrayUnion, onSnapshot, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -154,6 +169,24 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+
+// 🔐 匿名ログイン（自動・バックグラウンド）
+let isAuthReady = false;
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log('匿名ログイン成功:', user.uid);
+    isAuthReady = true;
+    startApp();
+  } else {
+    // ログインしていなければ自動で匿名ログイン
+    signInAnonymously(auth).catch((error) => {
+      console.error('匿名ログインエラー:', error);
+      showError('認証に失敗しました');
+    });
+  }
+});
 
 // 除外カテゴリ
 const EXCLUDE_CATS = ['飲み放題', 'テイクアウト', '無人', 'お通し'];
@@ -166,28 +199,28 @@ const rawData = [
     ["飲み放題男性90分", "飲み放題", 2280],
     ["飲み放題女性90分", "飲み放題", 1980],
     ["飲み放題延長", "飲み放題", 800],
-    ["手羽焼き（2本）", "焼き物", 400],
+    ["手羽焼き(2本)", "焼き物", 400],
     ["国産豚のロース網焼きステーキ", "焼き物", 600],
-    ["ハーフ豚の網焼きステーキ（1枚）", "焼き物", 700],
+    ["ハーフ豚の網焼きステーキ(1枚)", "焼き物", 700],
     ["ハーフ豚の炙りチャーシュー", "焼き物", 600],
-    ["自家製つくねのコロコロ焼き（4玉）", "焼き物", 400],
-    ["ささみ串焼き（数量限定 1串）", "焼き物", 250],
+    ["自家製つくねのコロコロ焼き(4玉)", "焼き物", 400],
+    ["ささみ串焼き(数量限定 1串)", "焼き物", 250],
     ["鴨肉の網焼き", "焼き物", 600],
-    ["ピリ辛ソーセージ（2本）", "焼き物", 400],
-    ["ラムソーセージ（2本）", "焼き物", 500],
-    ["うずらの玉子（1串）", "焼き物", 150],
-    ["肉厚しいたけ（2個）", "焼き物", 300],
-    ["プチトマト（1串）", "焼き物", 150],
-    ["ズッキーニ（1串）", "焼き物", 150],
-    ["長なす串焼き（1串）", "焼き物", 300],
-    ["軟白ねぎ（1串）", "焼き物", 300],
-    ["ししとう（2串）", "焼き物", 300],
+    ["ピリ辛ソーセージ(2本)", "焼き物", 400],
+    ["ラムソーセージ(2本)", "焼き物", 500],
+    ["うずらの玉子(1串)", "焼き物", 150],
+    ["肉厚しいたけ(2個)", "焼き物", 300],
+    ["プチトマト(1串)", "焼き物", 150],
+    ["ズッキーニ(1串)", "焼き物", 150],
+    ["長なす串焼き(1串)", "焼き物", 300],
+    ["軟白ねぎ(1串)", "焼き物", 300],
+    ["ししとう(2串)", "焼き物", 300],
     ["オリーブオイルにんにくカップ焼き", "焼き物", 500],
-    ["焼きじゃがバター（2個）", "焼き物", 500],
-    ["焼きじゃがバター（塩辛付き）（2個）", "焼き物", 600],
-    ["いももちバター（4個）", "焼き物", 400],
-    ["ささみ串（自家製塩こうじ漬け）", "焼き物", 300],
-    ["ロース網焼きステーキ（自家製塩こうじ漬け）", "焼き物", 750],
+    ["焼きじゃがバター(2個)", "焼き物", 500],
+    ["焼きじゃがバター(塩辛付き)(2個)", "焼き物", 600],
+    ["いももちバター(4個)", "焼き物", 400],
+    ["ささみ串(自家製塩こうじ漬け)", "焼き物", 300],
+    ["ロース網焼きステーキ(自家製塩こうじ漬け)", "焼き物", 750],
     ["鳥もつ煮込み", "一品料理", 400],
     ["特製一口ザンギ", "一品料理", 550],
     ["手羽ザンギ(3本)", "一品料理", 550],
@@ -290,10 +323,10 @@ const rawData = [
     ["コーヒー酎ハイ", "サワー", 500],
     ["生搾りレモンサワー", "サワー", 600],
     ["生搾りグレープフルーツサワー", "サワー", 600],
-    ["グラスワイン（赤）", "ワイン", 500],
-    ["グラスワイン（白）", "ワイン", 500],
-    ["焼酎甲類（ロック・水割り）", "焼酎", 500],
-    ["㐂六（きろく） 〈宮崎・芋〉", "焼酎", 700],
+    ["グラスワイン(赤)", "ワイン", 500],
+    ["グラスワイン(白)", "ワイン", 500],
+    ["焼酎甲類(ロック・水割り)", "焼酎", 500],
+    ["㐂六(きろく) 〈宮崎・芋〉", "焼酎", 700],
     ["山ねこ 〈宮崎・芋〉", "焼酎", 700],
     ["山せみ 〈宮崎・米〉", "焼酎", 700],
     ["山猿 〈宮崎・麦〉", "焼酎", 700],
@@ -334,33 +367,33 @@ const rawData = [
     ["アイスコーヒー", "ソフトドリンク", 350],
     ["緑茶", "ソフトドリンク", 350],
     ["ジンジャーエール", "ソフトドリンク", 350],
-    ["アイスクリーム（バニラ）", "デザート", 350],
+    ["アイスクリーム(バニラ)", "デザート", 350],
     ["コーラフロート", "デザート", 600],
     ["コーヒーフロート", "デザート", 600],
     ["沢の鶴 1合", "日本酒", 400],
     ["沢の鶴 2合", "日本酒", 600],
-    ["二世古（特別純米新酒しぼり）", "日本酒", 850],
-    ["繁桝（特別純米生々）", "日本酒", 900],
-    ["福司（純米酒）", "日本酒", 850],
-    ["まる田（特別純米）", "日本酒", 900],
-    ["男山（純米生酒）", "日本酒", 900],
-    ["獺祭（純米大吟醸）", "日本酒", 900],
-    ["十一州（吟醸しぼりたて）", "日本酒", 900],
-    ["久保田（清酒）", "日本酒", 850],
-    ["一ノ蔵（本醸造辛口）", "日本酒", 800],
-    ["ばくれん（吟醸超辛口）", "日本酒", 800],
-    ["くどき上手（純米吟醸辛口）", "日本酒", 900],
-    ["北の勝（清酒）", "日本酒", 800],
-    ["越後で候（しぼりたて生原酒）", "日本酒", 900],
-    ["李白（特別純米酒）", "日本酒", 850],
-    ["常山（とびっきり辛口）", "日本酒", 900],
-    ["開運（無濾過純米酒）", "日本酒", 900],
-    ["大和しずく（純米吟醸）", "日本酒", 900],
-    ["越乃寒梅（清酒）", "日本酒", 800],
-    ["八海山（清酒）", "日本酒", 800],
+    ["二世古(特別純米新酒しぼり)", "日本酒", 850],
+    ["繁桝(特別純米生々)", "日本酒", 900],
+    ["福司(純米酒)", "日本酒", 850],
+    ["まる田(特別純米)", "日本酒", 900],
+    ["男山(純米生酒)", "日本酒", 900],
+    ["獺祭(純米大吟醸)", "日本酒", 900],
+    ["十一州(吟醸しぼりたて)", "日本酒", 900],
+    ["久保田(清酒)", "日本酒", 850],
+    ["一ノ蔵(本醸造辛口)", "日本酒", 800],
+    ["ばくれん(吟醸超辛口)", "日本酒", 800],
+    ["くどき上手(純米吟醸辛口)", "日本酒", 900],
+    ["北の勝(清酒)", "日本酒", 800],
+    ["越後で候(しぼりたて生原酒)", "日本酒", 900],
+    ["李白(特別純米酒)", "日本酒", 850],
+    ["常山(とびっきり辛口)", "日本酒", 900],
+    ["開運(無濾過純米酒)", "日本酒", 900],
+    ["大和しずく(純米吟醸)", "日本酒", 900],
+    ["越乃寒梅(清酒)", "日本酒", 800],
+    ["八海山(清酒)", "日本酒", 800],
 ];
 
-// メニューデータ構築（除外カテゴリを除く）
+// メニューデータ構築(除外カテゴリを除く)
 const menuData = [];
 rawData.forEach(r => {
     if (EXCLUDE_CATS.includes(r[1])) return;
@@ -393,6 +426,17 @@ function showScreen(id) {
 function showError(msg) {
     document.getElementById('error-msg').innerText = msg || 'エラーが発生しました';
     showScreen('screen-error');
+}
+
+// アプリ起動（認証完了後）
+function startApp() {
+    if (tableParam && TABLES.includes(tableParam)) {
+        // QRコードにテーブル番号が含まれている場合
+        window.selectTable(tableParam);
+    } else {
+        // テーブル選択画面を表示
+        renderTableSelect();
+    }
 }
 
 // テーブル選択画面
@@ -575,15 +619,6 @@ window.backToMenu = () => {
     updateCartCount();
     initMenu();
 };
-
-// 起動
-if (tableParam && TABLES.includes(tableParam)) {
-    // QRコードにテーブル番号が含まれている場合
-    window.selectTable(tableParam);
-} else {
-    // テーブル選択画面を表示
-    renderTableSelect();
-}
 </script>
 </body>
 </html>

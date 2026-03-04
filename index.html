@@ -144,12 +144,14 @@ renderIndex(); updateFooter();
 });
 
 window.cloudSync = async (tableId) => {
+try {
 await setDoc(doc(db, "tables", tableId), {
 history: JSON.parse(localStorage.getItem('history_' + tableId) || '[]'),
 guests: parseInt(localStorage.getItem('guests_' + tableId)) || 0,
 checkin: localStorage.getItem('checkin_' + tableId) || "--:--",
 updatedAt: Timestamp.now()
 });
+} catch(e) { console.warn('cloudSync失敗:', e.message); }
 };
 
 // ▼▼▼ モバイルオーダー自動キッチン印刷 ▼▼▼

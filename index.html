@@ -647,16 +647,28 @@ function startCountdownTick() {
         getTablesL().forEach(tId => {
             const info = getCountdownInfo(tId);
             if (!info) return;
-            // ラストオーダー到達アラート（1回のみ）
             if (info.remaining <= 0 && !lastAlertedTable[tId]) {
                 lastAlertedTable[tId] = true;
-                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA...'); 
-                try { audio.play(); } catch(e) {}
+                try { new Audio('data:audio/wav;base64,UklGRl9vT1dBVkVm').play(); } catch(e) {}
                 alert(`⏰ ${tId}番席\nラストオーダーの時間です！`);
             }
         });
-        if (document.getElementById('view-index').style.display !== 'none') renderIndex();
-    }, 10000); // 10秒ごとに更新
+        // バッジのみ更新（全再描画しない）
+        document.querySelectorAll('.countdown-badge[data-table]').forEach(el => {
+            const tId = el.getAttribute('data-table');
+            const info = getCountdownInfo(tId);
+            if (!info) return;
+            const rem = info.remaining;
+            if (rem <= 0) {
+                el.textContent = 'LO！';
+                el.className = 'countdown-badge danger';
+            } else {
+                const m = Math.floor(rem / 60), s = rem % 60;
+                el.textContent = `🍺 ${m}:${String(s).padStart(2,'0')}`;
+                el.className = 'countdown-badge' + (rem <= 600 ? ' danger' : rem <= 1200 ? ' warning' : '');
+            }
+        });
+    }, 1000);
 }
 let currentTable = "", currentCart = [], tempGuestCount = "0";
 const PRINTER_URL = 'http://192.168.1.XX/StarWebPRNT/SendMessage';
@@ -679,11 +691,11 @@ function renderIndex() {
     if (cinfo) {
         const rem = cinfo.remaining;
         if (rem <= 0) {
-            cdBadge = `<span class="countdown-badge danger">LO！</span>`;
+            cdBadge = `<span class="countdown-badge danger" data-table="${t}">LO！</span>`;
         } else {
             const m = Math.floor(rem / 60), s = rem % 60;
             const cls = rem <= 600 ? 'danger' : rem <= 1200 ? 'warning' : '';
-            cdBadge = `<span class="countdown-badge ${cls}">🍺 ${m}:${String(s).padStart(2,'0')}</span>`;
+            cdBadge = `<span class="countdown-badge ${cls}" data-table="${t}">🍺 ${m}:${String(s).padStart(2,'0')}</span>`;
         }
     }
     return `<div class="table-btn ${total>0?'occupied':''}" onclick="onTableClick('${t}')"><b>${t}</b><span class="price-badge">${total>0?'¥'+total.toLocaleString():'空席'}</span>${cdBadge}${delBtn}</div>`;

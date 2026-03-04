@@ -249,6 +249,7 @@ window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tabl
   <select id="month-selector" onchange="showAdmin(['nav-menu','nav-dates','nav-dow','nav-month'].map(id=>({id,el:document.getElementById(id)})).find(x=>x.el&&x.el.classList.contains('active'))?.id?.replace('nav-','') || 'month')" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:15px; flex:1;"></select>
 </div>
 <div id="admin-summary-area" style="padding:15px; background:var(--dark); color:#fff; display:flex; justify-content:space-around; text-align:center; font-size:13px;"><div>件数<br><span id="sum-count" style="font-size:20px; font-weight:bold;">0</span></div><div>客数<br><span id="sum-guests" style="font-size:20px; font-weight:bold;">0</span></div><div>合計<br>¥<span id="sum-total" style="font-size:20px; font-weight:bold;">0</span></div></div>
+<div id="sales-type-summary-area" style="background:#444; color:#fff; padding:10px 15px; font-size:12px; display:none; flex-wrap:wrap; gap:8px; justify-content:center;"></div>
 <div id="payment-summary-area" style="background:#555; color:#fff; padding:10px 15px; font-size:12px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center;"></div>
 <div class="report-btns"><button class="btn-report" onclick="printReport('day')">日計印刷</button><button class="btn-report" onclick="printReport('month')" style="background:var(--accent);">月計印刷</button><button class="btn-report" onclick="exportCSV()" style="background:#8e44ad;">CSV出力</button></div>
 <div class="list-container" id="sales-list" style="background:#f4f4f4; padding:5px 0;"></div>
@@ -717,6 +718,22 @@ async function showAdmin(mode) {
         document.getElementById('sum-total').innerText = total.toLocaleString();
         document.getElementById('sum-guests').innerText = guests;
         document.getElementById('sum-count').innerText = sales.length;
+        // 売上種別内訳（店内／テイクアウト／無人）
+        const typeArea = document.getElementById('sales-type-summary-area');
+        if (mode !== 'menu' && mode !== 'dow') {
+            const typeMap = { '店内': 0, 'テイクアウト': 0, '無人': 0 };
+            sales.forEach(s => {
+                if (s.tableId === 'テイクアウト') typeMap['テイクアウト'] += s.total;
+                else if (s.tableId === '無人') typeMap['無人'] += s.total;
+                else typeMap['店内'] += s.total;
+            });
+            typeArea.innerHTML = Object.entries(typeMap).map(([k, v]) =>
+                `<span style="background:rgba(255,255,255,0.15); padding:4px 10px; border-radius:10px;">${k}: ¥${v.toLocaleString()}</span>`
+            ).join('');
+            typeArea.style.display = 'flex';
+        } else {
+            typeArea.style.display = 'none';
+        }
         // 決済種別内訳（menuモード以外）
         const payArea = document.getElementById('payment-summary-area');
         if (mode !== 'menu' && mode !== 'dow') {
@@ -911,7 +928,7 @@ function exitEditing() { window.isEditing = false; showMenu(); }
 function showOrderHistory() { window.isEditing = true; hideAll(); document.getElementById('view-history').style.display = 'flex'; renderHistoryUI(); }
 function showCheckout() { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const total = hist.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); document.getElementById('checkout-final-total').innerText = "¥" + total.toLocaleString(); document.getElementById('checkout-final-info').innerText = `入店 ${localStorage.getItem('checkin_'+currentTable)} / 客 ${localStorage.getItem('guests_'+currentTable)}名`; hideAll(); document.getElementById('view-checkout').style.display = 'flex'; selectPayment('現金'); buildQuickCashBtns(total); }
 function updateFooter() { document.getElementById('cart-count').innerText = currentCart.reduce((s, i) => s + i.qty, 0); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const total = hist.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); document.getElementById('display-current-total').innerText = "税込合計: ¥" + total.toLocaleString(); }
-function openReceiptChoice() { if (isTestMode) { document.getElementById('receipt-preview-area').style.display = 'block'; renderReceiptSample(); } document.getElementById('overlay-receipt').style.display = 'flex'; }
+function openReceiptChoice() { if(!window.currentUser) { alert("お会計にはログインが必要です。\n画面上部の「売上管理」からログインしてください。"); return; } if (isTestMode) { document.getElementById('receipt-preview-area').style.display = 'block'; renderReceiptSample(); } document.getElementById('overlay-receipt').style.display = 'flex'; }
 function renderReceiptSample() {
 const h = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const g = localStorage.getItem('guests_'+currentTable) || 0; const c = localStorage.getItem('checkin_'+currentTable) || "--:--"; let sub = 0, tx = 0;
 let t = `<div class="text-center text-bold">美唄焼鳥三船 東札幌店</div><div class="text-center">札幌市白石区東札幌2条3丁目9-2</div><div class="receipt-hr"></div><div>日時: ${new Date().toLocaleString()}</div><div>席: ${currentTable} 客: ${g}名 入店: ${c}</div><div class="receipt-hr"></div>`;
@@ -921,7 +938,7 @@ document.getElementById('sample-receipt-content').innerHTML = t;
 }
 function closeReceiptChoice() { document.getElementById('overlay-receipt').style.display = 'none'; }
 async function testSend() { if(currentCart.length === 0) return alert("空です"); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart))); localStorage.removeItem('cart_'+currentTable); currentCart = []; if(window.cloudSync) await window.cloudSync(currentTable); hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter(); }
-async function testPay() { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable, currentPaymentMethod); showIndex(); }
+async function testPay() { if(!window.currentUser) { alert("お会計にはログインが必要です。\n画面上部の「売上管理」からログインしてください。"); return; } if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable, currentPaymentMethod); showIndex(); }
 
 async function sendToKitchen() {
 if(currentCart.length === 0) return;

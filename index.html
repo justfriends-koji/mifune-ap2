@@ -133,6 +133,13 @@ localStorage.setItem('history_'+tId, JSON.stringify(data.history || []));
 localStorage.setItem('guests_'+tId, data.guests || 0);
 localStorage.setItem('checkin_'+tId, data.checkin || "--:--");
 
+// 飲み放題カウントダウン同期
+if (data.nomihodaiStart) {
+    localStorage.setItem('nomihodai_start_' + tId, data.nomihodaiStart);
+} else {
+    localStorage.removeItem('nomihodai_start_' + tId);
+}
+
 // ▼ モバイルオーダー検知・自動キッチン印刷
 const mobileOrders = data.mobileOrders || [];
 if (mobileOrders.length > 0) {
@@ -149,10 +156,12 @@ renderIndex(); updateFooter();
 
 window.cloudSync = async (tableId) => {
 try {
+const nomiStart = localStorage.getItem('nomihodai_start_' + tableId);
 await setDoc(doc(db, "tables", tableId), {
 history: JSON.parse(localStorage.getItem('history_' + tableId) || '[]'),
 guests: parseInt(localStorage.getItem('guests_' + tableId)) || 0,
 checkin: localStorage.getItem('checkin_' + tableId) || "--:--",
+nomihodaiStart: nomiStart ? parseInt(nomiStart) : null,
 updatedAt: Timestamp.now()
 });
 } catch(e) { console.warn('cloudSync失敗:', e.message); }

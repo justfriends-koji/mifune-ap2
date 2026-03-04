@@ -928,7 +928,7 @@ function exitEditing() { window.isEditing = false; showMenu(); }
 function showOrderHistory() { window.isEditing = true; hideAll(); document.getElementById('view-history').style.display = 'flex'; renderHistoryUI(); }
 function showCheckout() { const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const total = hist.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); document.getElementById('checkout-final-total').innerText = "¥" + total.toLocaleString(); document.getElementById('checkout-final-info').innerText = `入店 ${localStorage.getItem('checkin_'+currentTable)} / 客 ${localStorage.getItem('guests_'+currentTable)}名`; hideAll(); document.getElementById('view-checkout').style.display = 'flex'; selectPayment('現金'); buildQuickCashBtns(total); }
 function updateFooter() { document.getElementById('cart-count').innerText = currentCart.reduce((s, i) => s + i.qty, 0); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const total = hist.reduce((s, i) => s + Math.floor(i.price*i.qty*(1+i.rate)), 0); document.getElementById('display-current-total').innerText = "税込合計: ¥" + total.toLocaleString(); }
-function openReceiptChoice() { if(!window.currentUser) { alert("お会計にはログインが必要です。\n画面上部の「売上管理」からログインしてください。"); return; } if (isTestMode) { document.getElementById('receipt-preview-area').style.display = 'block'; renderReceiptSample(); } document.getElementById('overlay-receipt').style.display = 'flex'; }
+function openReceiptChoice() { if (isTestMode) { document.getElementById('receipt-preview-area').style.display = 'block'; renderReceiptSample(); } document.getElementById('overlay-receipt').style.display = 'flex'; }
 function renderReceiptSample() {
 const h = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const g = localStorage.getItem('guests_'+currentTable) || 0; const c = localStorage.getItem('checkin_'+currentTable) || "--:--"; let sub = 0, tx = 0;
 let t = `<div class="text-center text-bold">美唄焼鳥三船 東札幌店</div><div class="text-center">札幌市白石区東札幌2条3丁目9-2</div><div class="receipt-hr"></div><div>日時: ${new Date().toLocaleString()}</div><div>席: ${currentTable} 客: ${g}名 入店: ${c}</div><div class="receipt-hr"></div>`;
@@ -938,7 +938,7 @@ document.getElementById('sample-receipt-content').innerHTML = t;
 }
 function closeReceiptChoice() { document.getElementById('overlay-receipt').style.display = 'none'; }
 async function testSend() { if(currentCart.length === 0) return alert("空です"); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart))); localStorage.removeItem('cart_'+currentTable); currentCart = []; if(window.cloudSync) await window.cloudSync(currentTable); hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter(); }
-async function testPay() { if(!window.currentUser) { alert("お会計にはログインが必要です。\n画面上部の「売上管理」からログインしてください。"); return; } if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable, currentPaymentMethod); showIndex(); }
+async function testPay() { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable, currentPaymentMethod); showIndex(); }
 
 async function sendToKitchen() {
 if(currentCart.length === 0) return;

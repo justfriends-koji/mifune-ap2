@@ -630,12 +630,10 @@ async function startCountdownIfNeeded(tableId) {
     const hasNomi = hist.some(i => NOMIHODAI_ITEMS.includes(i.name));
     if (!hasNomi) return;
     const key = 'nomihodai_start_' + tableId;
-    if (localStorage.getItem(key)) return; // すでにonSnapshot経由でセット済み
-    // Firestoreサーバー時刻で記録（デバイス時刻のズレを防ぐ）
+    if (localStorage.getItem(key)) return; // すでにセット済み
+    // Firestoreサーバー時刻で記録 → onSnapshotで両デバイスに同期
     try {
         if (window.cloudSyncNomi) await window.cloudSyncNomi(tableId);
-        // onSnapshotが来るまでの暫定値（後でFirestore値で上書きされる）
-        localStorage.setItem(key, Date.now().toString());
     } catch(e) { console.warn('nomihodai sync失敗:', e.message); }
 }
 

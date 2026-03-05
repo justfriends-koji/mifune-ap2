@@ -134,13 +134,17 @@ localStorage.setItem('guests_'+tId, data.guests || 0);
 localStorage.setItem('checkin_'+tId, data.checkin || "--:--");
 
 // 飲み放題カウントダウン同期
-// onSnapshot発火時のDate.now()をアンカーとして保存（デバイス時計の差を無効化）
+// updatedAt(サーバー時刻)とDate.now(デバイス時刻)の差でオフセットを推定
 if (data.nomihodaiStart) {
-    if (!localStorage.getItem('nomihodai_anchor_' + tId)) {
-        localStorage.setItem('nomihodai_anchor_' + tId, Date.now().toString());
+    const nomiMs = data.nomihodaiStart.toMillis();
+    localStorage.setItem('nomihodai_server_ms_' + tId, nomiMs.toString());
+    if (data.updatedAt && typeof data.updatedAt.toMillis === 'function') {
+        const deviceOffset = Date.now() - data.updatedAt.toMillis();
+        localStorage.setItem('nomihodai_device_offset_' + tId, deviceOffset.toString());
     }
 } else {
-    localStorage.removeItem('nomihodai_anchor_' + tId);
+    localStorage.removeItem('nomihodai_server_ms_' + tId);
+    localStorage.removeItem('nomihodai_device_offset_' + tId);
 }
 
 // ▼ モバイルオーダー検知・自動キッチン印刷
@@ -638,24 +642,26 @@ let lastAlertedTable = {};
 async function startCountdownIfNeeded(tableId) {
     const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
     if (!hist.some(i => NOMIHODAI_ITEMS.includes(i.name))) return;
-    if (localStorage.getItem('nomihodai_anchor_' + tableId)) return; // 既にセット済み
+    if (localStorage.getItem('nomihodai_server_ms_' + tableId)) return; // 既にセット済み
     // Firestoreに書き込む → onSnapshotが両デバイスで発火 → アンカーをセット
     if (window.cloudSyncNomi) await window.cloudSyncNomi(tableId);
 }
 
 // 会計時に呼ぶ
 async function clearCountdown(tableId) {
-    localStorage.removeItem('nomihodai_anchor_' + tableId);
+    localStorage.removeItem('nomihodai_server_ms_' + tableId);
+    localStorage.removeItem('nomihodai_device_offset_' + tableId);
     delete lastAlertedTable[tableId];
-    // Firestoreをクリア → onSnapshotで両デバイスのlocalStorageも消える
     if (window.cloudSyncNomiClear) await window.cloudSyncNomiClear(tableId);
 }
 
-// 残り秒数を返す（アンカーが無ければnull）
+// 残り秒数を返す（データがなければnull）
 function getCountdownRemaining(tableId) {
-    const anchor = parseInt(localStorage.getItem('nomihodai_anchor_' + tableId));
-    if (!anchor) return null;
-    const elapsed = Math.floor((Date.now() - anchor) / 1000);
+    const serverMs = parseInt(localStorage.getItem('nomihodai_server_ms_' + tableId));
+    if (!serverMs) return null;
+    const offset = parseInt(localStorage.getItem('nomihodai_device_offset_' + tableId)) || 0;
+    const serverNow = Date.now() - offset; // サーバー時刻換算の現在時刻
+    const elapsed = Math.floor((serverNow - serverMs) / 1000);
     return NOMIHODAI_MINUTES * 60 - elapsed;
 }
 

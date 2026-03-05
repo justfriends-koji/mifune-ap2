@@ -137,14 +137,13 @@ localStorage.setItem('checkin_'+tId, data.checkin || "--:--");
 if (data.nomihodaiStart && data.updatedAt) {
     const nomiMs = data.nomihodaiStart.toMillis();
     const updatedAtMs = data.updatedAt.toMillis();
-    // deviceOffset = このデバイスの時計とサーバー時計のズレ
-    const deviceOffset = Date.now() - updatedAtMs;
-    // アンカー未セットの時だけ記録（別席操作でリセットされないよう）
+    // nomi_startは最初の1回だけセット
     if (!localStorage.getItem('nomi_anchor_' + tId)) {
         localStorage.setItem('nomi_start_' + tId, nomiMs.toString());
-        localStorage.setItem('nomi_offset_' + tId, deviceOffset.toString());
         localStorage.setItem('nomi_anchor_' + tId, '1');
     }
+    // offsetはonSnapshotのたびに更新（常に最新の補正値）
+    localStorage.setItem('nomi_offset_' + tId, (Date.now() - updatedAtMs).toString());
 } else {
     localStorage.removeItem('nomi_start_' + tId);
     localStorage.removeItem('nomi_offset_' + tId);

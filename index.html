@@ -133,18 +133,11 @@ localStorage.setItem('history_'+tId, JSON.stringify(data.history || []));
 localStorage.setItem('guests_'+tId, data.guests || 0);
 localStorage.setItem('checkin_'+tId, data.checkin || "--:--");
 
-// 飲み放題カウントダウン同期
-if (data.nomihodaiStart && data.updatedAt) {
-    const nomiMs = data.nomihodaiStart.toMillis();
-    const updatedAtMs = data.updatedAt.toMillis();
-    // サーバー時刻同士の差（デバイス時計と無関係）
-    const elapsedAtSnapshot = Math.max(0, Math.floor((updatedAtMs - nomiMs) / 1000));
-    // スナップショット受信時点をアンカーに（ここからはデバイス時計の差分だけ加算）
-    localStorage.setItem('nomi_elapsed_' + tId, elapsedAtSnapshot.toString());
-    localStorage.setItem('nomi_anchor_' + tId, Date.now().toString());
+// 飲み放題カウントダウン同期（nomihodaiStartをms値で保存するだけ）
+if (data.nomihodaiStart) {
+    localStorage.setItem('nomi_start_ms_' + tId, data.nomihodaiStart.toMillis().toString());
 } else {
-    localStorage.removeItem('nomi_elapsed_' + tId);
-    localStorage.removeItem('nomi_anchor_' + tId);
+    localStorage.removeItem('nomi_start_ms_' + tId);
 }
 
 // ▼ モバイルオーダー検知・自動キッチン印刷
@@ -645,24 +638,22 @@ let lastAlertedTable = {};
 async function startCountdownIfNeeded(tableId) {
     const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
     if (!hist.some(i => NOMIHODAI_ITEMS.includes(i.name))) return;
-    if (localStorage.getItem('nomi_anchor_' + tableId)) return; // 既にセット済み    // Firestoreに書き込む → onSnapshotが両デバイスで発火 → アンカーをセット
+    if (localStorage.getItem('nomi_start_ms_' + tableId)) return; // 既にセット済み    // Firestoreに書き込む → onSnapshotが両デバイスで発火 → アンカーをセット
     if (window.cloudSyncNomi) await window.cloudSyncNomi(tableId);
 }
 
 // 会計時に呼ぶ
 async function clearCountdown(tableId) {
-    localStorage.removeItem('nomi_elapsed_' + tableId);
-    localStorage.removeItem('nomi_anchor_' + tableId);
+    localStorage.removeItem('nomi_start_ms_' + tableId);
     delete lastAlertedTable[tableId];
     if (window.cloudSyncNomiClear) await window.cloudSyncNomiClear(tableId);
 }
 
 function getCountdownRemaining(tableId) {
-    const elapsedAtSnapshot = parseInt(localStorage.getItem('nomi_elapsed_' + tableId));
-    const anchor = parseInt(localStorage.getItem('nomi_anchor_' + tableId));
-    if (!anchor || isNaN(elapsedAtSnapshot)) return null;
-    const sinceSnapshot = Math.floor((Date.now() - anchor) / 1000);
-    return NOMIHODAI_MINUTES * 60 - elapsedAtSnapshot - sinceSnapshot;
+    const startMs = parseInt(localStorage.getItem('nomi_start_ms_' + tableId));
+    if (!startMs) return null;
+    const elapsed = Math.floor((Date.now() - startMs) / 1000);
+    return NOMIHODAI_MINUTES * 60 - elapsed;
 }
 
 // 1秒ごとにバッジだけ更新

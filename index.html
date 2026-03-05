@@ -680,6 +680,20 @@ function startCountdownTick() {
             if (rem === null) return;
             if (rem <= 0 && !lastAlertedTable[tId]) {
                 lastAlertedTable[tId] = true;
+                // ハンディ（?handy=1）の時だけ音を鳴らす
+                if (new URLSearchParams(location.search).get('handy') === '1') {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    [0, 0.3, 0.6].forEach(t => {
+                        const o = ctx.createOscillator();
+                        const g = ctx.createGain();
+                        o.connect(g); g.connect(ctx.destination);
+                        o.frequency.value = 880;
+                        g.gain.setValueAtTime(0.5, ctx.currentTime + t);
+                        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + t + 0.25);
+                        o.start(ctx.currentTime + t);
+                        o.stop(ctx.currentTime + t + 0.25);
+                    });
+                }
                 alert(`⏰ ${tId}番席\nラストオーダーの時間です！`);
             }
         });

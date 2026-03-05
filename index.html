@@ -253,10 +253,13 @@ window.deleteDaySales = async (label) => {
 };
 window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tableId)); };
 
-// 飲み放題開始をFirestoreに書き込み（serverTimestamp使用）
+// 飲み放題開始をFirestoreに書き込み（serverTimestamp使用・updatedAtと同時書き込み）
 window.cloudSyncNomi = async (tableId) => {
     try {
-        await setDoc(doc(db, "tables", tableId), { nomihodaiStart: serverTimestamp() }, { merge: true });
+        await setDoc(doc(db, "tables", tableId), {
+            nomihodaiStart: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        }, { merge: true });
     } catch(e) { console.warn('nomihodai開始書き込み失敗:', e.message); }
 };
 

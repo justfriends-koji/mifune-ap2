@@ -134,17 +134,18 @@ localStorage.setItem('guests_'+tId, data.guests || 0);
 localStorage.setItem('checkin_'+tId, data.checkin || "--:--");
 
 // 飲み放題カウントダウン同期
-// updatedAt(サーバー時刻)とDate.now(デバイス時刻)の差でオフセットを推定
-if (data.nomihodaiStart) {
+if (data.nomihodaiStart && data.updatedAt) {
     const nomiMs = data.nomihodaiStart.toMillis();
-    localStorage.setItem('nomihodai_server_ms_' + tId, nomiMs.toString());
-    if (data.updatedAt && typeof data.updatedAt.toMillis === 'function') {
-        const deviceOffset = Date.now() - data.updatedAt.toMillis();
-        localStorage.setItem('nomihodai_device_offset_' + tId, deviceOffset.toString());
+    const updatedAtMs = data.updatedAt.toMillis();
+    const serverElapsedSec = Math.floor((updatedAtMs - nomiMs) / 1000);
+    // アンカーが未セットの時だけ記録（別席の注文でリセットされないよう）
+    if (!localStorage.getItem('nomi_anchor_' + tId)) {
+        localStorage.setItem('nomi_elapsed_' + tId, serverElapsedSec.toString());
+        localStorage.setItem('nomi_anchor_' + tId, Date.now().toString());
     }
 } else {
-    localStorage.removeItem('nomihodai_server_ms_' + tId);
-    localStorage.removeItem('nomihodai_device_offset_' + tId);
+    localStorage.removeItem('nomi_elapsed_' + tId);
+    localStorage.removeItem('nomi_anchor_' + tId);
 }
 
 // ▼ モバイルオーダー検知・自動キッチン印刷
@@ -642,27 +643,25 @@ let lastAlertedTable = {};
 async function startCountdownIfNeeded(tableId) {
     const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
     if (!hist.some(i => NOMIHODAI_ITEMS.includes(i.name))) return;
-    if (localStorage.getItem('nomihodai_server_ms_' + tableId)) return; // 既にセット済み
+    if (localStorage.getItem('nomi_anchor_' + tableId)) return; // 既にセット済み
     // Firestoreに書き込む → onSnapshotが両デバイスで発火 → アンカーをセット
     if (window.cloudSyncNomi) await window.cloudSyncNomi(tableId);
 }
 
 // 会計時に呼ぶ
 async function clearCountdown(tableId) {
-    localStorage.removeItem('nomihodai_server_ms_' + tableId);
-    localStorage.removeItem('nomihodai_device_offset_' + tableId);
+    localStorage.removeItem('nomi_elapsed_' + tableId);
+    localStorage.removeItem('nomi_anchor_' + tableId);
     delete lastAlertedTable[tableId];
     if (window.cloudSyncNomiClear) await window.cloudSyncNomiClear(tableId);
 }
 
-// 残り秒数を返す（データがなければnull）
 function getCountdownRemaining(tableId) {
-    const serverMs = parseInt(localStorage.getItem('nomihodai_server_ms_' + tableId));
-    if (!serverMs) return null;
-    const offset = parseInt(localStorage.getItem('nomihodai_device_offset_' + tableId)) || 0;
-    const serverNow = Date.now() - offset; // サーバー時刻換算の現在時刻
-    const elapsed = Math.floor((serverNow - serverMs) / 1000);
-    return NOMIHODAI_MINUTES * 60 - elapsed;
+    const elapsedAtAnchor = parseInt(localStorage.getItem('nomi_elapsed_' + tableId));
+    const anchor = parseInt(localStorage.getItem('nomi_anchor_' + tableId));
+    if (!anchor) return null;
+    const additionalElapsed = Math.floor((Date.now() - anchor) / 1000);
+    return NOMIHODAI_MINUTES * 60 - elapsedAtAnchor - additionalElapsed;
 }
 
 // 1秒ごとにバッジだけ更新

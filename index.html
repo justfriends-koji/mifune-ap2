@@ -692,6 +692,65 @@ function getCountdownRemaining(tableId) {
     return totalMinutes * 60 - elapsed;
 }
 
+let alarmCtx = null;
+let alarmNodes = [];
+
+function playAlarm() {
+    try {
+        stopAlarm();
+        alarmCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function beep(startTime) {
+            const o = alarmCtx.createOscillator();
+            const g = alarmCtx.createGain();
+            o.connect(g); g.connect(alarmCtx.destination);
+            o.frequency.value = 880;
+            g.gain.setValueAtTime(0.6, startTime);
+            g.gain.setValueAtTime(0.6, startTime + 0.6);
+            g.gain.exponentialRampToValueAtTime(0.01, startTime + 0.8);
+            o.start(startTime); o.stop(startTime + 0.8);
+            alarmNodes.push(o);
+        }
+        // 30秒間繰り返しビープ
+        for (let i = 0; i < 30; i++) beep(alarmCtx.currentTime + i * 1.2);
+    } catch(e) {}
+}
+
+function stopAlarm() {
+    if (alarmCtx) {
+        alarmNodes.forEach(o => { try { o.stop(); } catch(e) {} });
+        alarmNodes = [];
+        alarmCtx.close();
+        alarmCtx = null;
+    }
+}
+
+function showAlarmModal(tableId) {
+    stopAlarm();
+    if (new URLSearchParams(location.search).get('handy') === '2') playAlarm();
+    // モーダル表示
+    let modal = document.getElementById('alarm-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'alarm-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(198,40,40,0.92);z-index:9999;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;';
+        modal.innerHTML = `
+            <div style="font-size:60px;margin-bottom:20px;">⏰</div>
+            <div id="alarm-table-name" style="font-size:32px;font-weight:bold;margin-bottom:10px;"></div>
+            <div style="font-size:20px;margin-bottom:40px;">ラストオーダーの時間です！</div>
+            <button onclick="closeAlarmModal()" style="background:#fff;color:#c62828;border:none;padding:18px 50px;border-radius:30px;font-size:22px;font-weight:bold;cursor:pointer;">✓ 確認（停止）</button>
+        `;
+        document.body.appendChild(modal);
+    }
+    document.getElementById('alarm-table-name').textContent = tableId + '番席';
+    modal.style.display = 'flex';
+}
+
+function closeAlarmModal() {
+    stopAlarm();
+    const modal = document.getElementById('alarm-modal');
+    if (modal) modal.style.display = 'none';
+}
+
 // 1秒ごとにバッジだけ更新
 function startCountdownTick() {
     if (countdownInterval) clearInterval(countdownInterval);
@@ -701,22 +760,7 @@ function startCountdownTick() {
             if (rem === null) return;
             if (rem <= 0 && !lastAlertedTable[tId]) {
                 lastAlertedTable[tId] = true;
-                if (new URLSearchParams(location.search).get('handy') === '1') {
-                    try {
-                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                        [0, 0.35, 0.7].forEach(t => {
-                            const o = ctx.createOscillator();
-                            const g = ctx.createGain();
-                            o.connect(g); g.connect(ctx.destination);
-                            o.frequency.value = 880;
-                            g.gain.setValueAtTime(0.5, ctx.currentTime + t);
-                            g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + t + 0.3);
-                            o.start(ctx.currentTime + t);
-                            o.stop(ctx.currentTime + t + 0.3);
-                        });
-                    } catch(e) {}
-                }
-                alert(`⏰ ${tId}番席\nラストオーダーの時間です！`);
+                showAlarmModal(tId);
             }
         });
         document.querySelectorAll('.countdown-badge[data-table]').forEach(el => {
@@ -1329,6 +1373,19 @@ document.addEventListener('DOMContentLoaded', () => {
 // ▲▲▲ 領収書機能追加 ▲▲▲
 
 window.onload = () => { renderIndex(); startCountdownTick(); };
+
+// 画面を開いた瞬間にも期限切れチェック
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    getTablesL().forEach(tId => {
+        const rem = getCountdownRemaining(tId);
+        if (rem === null) return;
+        if (rem <= 0 && !lastAlertedTable[tId]) {
+            lastAlertedTable[tId] = true;
+            showAlarmModal(tId);
+        }
+    });
+});
 </script>
 </body>
 </html>

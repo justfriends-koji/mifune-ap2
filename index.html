@@ -140,9 +140,15 @@ if (data.updatedAt && typeof data.updatedAt.toMillis === 'function') {
 
 // 飲み放題カウントダウン同期
 if (data.nomihodaiStart) {
-    localStorage.setItem('nomi_start_ms_' + tId, data.nomihodaiStart.toMillis().toString());
+    const startMs = data.nomihodaiStart.toMillis();
+    localStorage.setItem('nomi_start_ms_' + tId, startMs.toString());
+    // nomihodaiStart受信時点のオフセットをテーブルごとに保存（1回のみ）
+    if (!localStorage.getItem('nomi_offset_' + tId)) {
+        localStorage.setItem('nomi_offset_' + tId, (Date.now() - startMs).toString());
+    }
 } else {
     localStorage.removeItem('nomi_start_ms_' + tId);
+    localStorage.removeItem('nomi_offset_' + tId);
 }
 
 // ▼ モバイルオーダー検知・自動キッチン印刷
@@ -651,6 +657,7 @@ async function startCountdownIfNeeded(tableId) {
 // 会計時に呼ぶ
 async function clearCountdown(tableId) {
     localStorage.removeItem('nomi_start_ms_' + tableId);
+    localStorage.removeItem('nomi_offset_' + tableId);
     delete lastAlertedTable[tableId];
     if (window.cloudSyncNomiClear) await window.cloudSyncNomiClear(tableId);
 }
@@ -658,8 +665,8 @@ async function clearCountdown(tableId) {
 function getCountdownRemaining(tableId) {
     const startMs = parseInt(localStorage.getItem('nomi_start_ms_' + tableId));
     if (!startMs) return null;
-    const offset = window.deviceClockOffset || 0;
-    const serverNow = Date.now() - offset; // デバイス時計をサーバー時刻に補正
+    const offset = parseInt(localStorage.getItem('nomi_offset_' + tableId)) || 0;
+    const serverNow = Date.now() - offset;
     const elapsed = Math.floor((serverNow - startMs) / 1000);
     return NOMIHODAI_MINUTES * 60 - elapsed;
 }

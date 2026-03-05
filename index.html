@@ -142,13 +142,14 @@ if (data.updatedAt && typeof data.updatedAt.toMillis === 'function') {
 if (data.nomihodaiStart) {
     const startMs = data.nomihodaiStart.toMillis();
     localStorage.setItem('nomi_start_ms_' + tId, startMs.toString());
-    // nomihodaiStart受信時点のオフセットをテーブルごとに保存（1回のみ）
+    localStorage.setItem('nomi_total_min_' + tId, (data.nomiTotalMinutes || NOMIHODAI_MINUTES).toString());
     if (!localStorage.getItem('nomi_offset_' + tId)) {
         localStorage.setItem('nomi_offset_' + tId, (Date.now() - startMs).toString());
     }
 } else {
     localStorage.removeItem('nomi_start_ms_' + tId);
     localStorage.removeItem('nomi_offset_' + tId);
+    localStorage.removeItem('nomi_total_min_' + tId);
 }
 
 // ▼ モバイルオーダー検知・自動キッチン印刷
@@ -261,15 +262,25 @@ window.cloudSyncNomi = async (tableId) => {
     try {
         await setDoc(doc(db, "tables", tableId), {
             nomihodaiStart: serverTimestamp(),
+            nomiTotalMinutes: NOMIHODAI_MINUTES,
             updatedAt: serverTimestamp()
         }, { merge: true });
     } catch(e) { console.warn('nomihodai開始書き込み失敗:', e.message); }
 };
 
+window.cloudSyncNomiEncho = async (tableId, totalMinutes) => {
+    try {
+        await setDoc(doc(db, "tables", tableId), {
+            nomiTotalMinutes: totalMinutes,
+            updatedAt: serverTimestamp()
+        }, { merge: true });
+    } catch(e) { console.warn('nomihodai延長書き込み失敗:', e.message); }
+};
+
 // 飲み放題終了をFirestoreに書き込み
 window.cloudSyncNomiClear = async (tableId) => {
     try {
-        await setDoc(doc(db, "tables", tableId), { nomihodaiStart: null }, { merge: true });
+        await setDoc(doc(db, "tables", tableId), { nomihodaiStart: null, nomiTotalMinutes: null }, { merge: true });
     } catch(e) { console.warn('nomihodaiクリア失敗:', e.message); }
 };
 
@@ -641,7 +652,9 @@ const tablesL = baseTablesL; // 後方互換
 
 // ===== 飲み放題カウントダウン =====
 const NOMIHODAI_ITEMS = ['飲み放題男性90分', '飲み放題女性90分'];
+const NOMIHODAI_ENCHO = '飲み放題延長';
 const NOMIHODAI_MINUTES = 85;
+const NOMIHODAI_ENCHO_MINUTES = 30;
 let countdownInterval = null;
 let lastAlertedTable = {};
 window.deviceClockOffset = 0; // Date.now() - サーバー時刻（ms）
@@ -650,7 +663,13 @@ window.deviceClockOffset = 0; // Date.now() - サーバー時刻（ms）
 async function startCountdownIfNeeded(tableId) {
     const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
     if (!hist.some(i => NOMIHODAI_ITEMS.includes(i.name))) return;
-    if (localStorage.getItem('nomi_start_ms_' + tableId)) return; // 既にセット済み    // Firestoreに書き込む → onSnapshotが両デバイスで発火 → アンカーをセット
+    const enchoCnt = hist.filter(i => i.name === NOMIHODAI_ENCHO).reduce((s, i) => s + i.qty, 0);
+    const totalMinutes = NOMIHODAI_MINUTES + enchoCnt * NOMIHODAI_ENCHO_MINUTES;
+    if (localStorage.getItem('nomi_start_ms_' + tableId)) {
+        // 延長注文 → 合計時間をFirestoreに更新
+        if (window.cloudSyncNomiEncho) await window.cloudSyncNomiEncho(tableId, totalMinutes);
+        return;
+    }
     if (window.cloudSyncNomi) await window.cloudSyncNomi(tableId);
 }
 
@@ -658,6 +677,7 @@ async function startCountdownIfNeeded(tableId) {
 async function clearCountdown(tableId) {
     localStorage.removeItem('nomi_start_ms_' + tableId);
     localStorage.removeItem('nomi_offset_' + tableId);
+    localStorage.removeItem('nomi_total_min_' + tableId);
     delete lastAlertedTable[tableId];
     if (window.cloudSyncNomiClear) await window.cloudSyncNomiClear(tableId);
 }
@@ -666,9 +686,10 @@ function getCountdownRemaining(tableId) {
     const startMs = parseInt(localStorage.getItem('nomi_start_ms_' + tableId));
     if (!startMs) return null;
     const offset = parseInt(localStorage.getItem('nomi_offset_' + tableId)) || 0;
+    const totalMinutes = parseInt(localStorage.getItem('nomi_total_min_' + tableId)) || NOMIHODAI_MINUTES;
     const serverNow = Date.now() - offset;
     const elapsed = Math.floor((serverNow - startMs) / 1000);
-    return NOMIHODAI_MINUTES * 60 - elapsed;
+    return totalMinutes * 60 - elapsed;
 }
 
 // 1秒ごとにバッジだけ更新
@@ -680,19 +701,20 @@ function startCountdownTick() {
             if (rem === null) return;
             if (rem <= 0 && !lastAlertedTable[tId]) {
                 lastAlertedTable[tId] = true;
-                // ハンディ（?handy=1）の時だけ音を鳴らす
                 if (new URLSearchParams(location.search).get('handy') === '1') {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    [0, 0.3, 0.6].forEach(t => {
-                        const o = ctx.createOscillator();
-                        const g = ctx.createGain();
-                        o.connect(g); g.connect(ctx.destination);
-                        o.frequency.value = 880;
-                        g.gain.setValueAtTime(0.5, ctx.currentTime + t);
-                        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + t + 0.25);
-                        o.start(ctx.currentTime + t);
-                        o.stop(ctx.currentTime + t + 0.25);
-                    });
+                    try {
+                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        [0, 0.35, 0.7].forEach(t => {
+                            const o = ctx.createOscillator();
+                            const g = ctx.createGain();
+                            o.connect(g); g.connect(ctx.destination);
+                            o.frequency.value = 880;
+                            g.gain.setValueAtTime(0.5, ctx.currentTime + t);
+                            g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + t + 0.3);
+                            o.start(ctx.currentTime + t);
+                            o.stop(ctx.currentTime + t + 0.3);
+                        });
+                    } catch(e) {}
                 }
                 alert(`⏰ ${tId}番席\nラストオーダーの時間です！`);
             }

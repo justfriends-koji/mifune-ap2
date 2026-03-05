@@ -137,16 +137,13 @@ localStorage.setItem('checkin_'+tId, data.checkin || "--:--");
 if (data.nomihodaiStart && data.updatedAt) {
     const nomiMs = data.nomihodaiStart.toMillis();
     const updatedAtMs = data.updatedAt.toMillis();
-    // nomi_startは最初の1回だけセット
-    if (!localStorage.getItem('nomi_anchor_' + tId)) {
-        localStorage.setItem('nomi_start_' + tId, nomiMs.toString());
-        localStorage.setItem('nomi_anchor_' + tId, '1');
-    }
-    // offsetはonSnapshotのたびに更新（常に最新の補正値）
-    localStorage.setItem('nomi_offset_' + tId, (Date.now() - updatedAtMs).toString());
+    // サーバー時刻同士の差（デバイス時計と無関係）
+    const elapsedAtSnapshot = Math.max(0, Math.floor((updatedAtMs - nomiMs) / 1000));
+    // スナップショット受信時点をアンカーに（ここからはデバイス時計の差分だけ加算）
+    localStorage.setItem('nomi_elapsed_' + tId, elapsedAtSnapshot.toString());
+    localStorage.setItem('nomi_anchor_' + tId, Date.now().toString());
 } else {
-    localStorage.removeItem('nomi_start_' + tId);
-    localStorage.removeItem('nomi_offset_' + tId);
+    localStorage.removeItem('nomi_elapsed_' + tId);
     localStorage.removeItem('nomi_anchor_' + tId);
 }
 
@@ -648,28 +645,24 @@ let lastAlertedTable = {};
 async function startCountdownIfNeeded(tableId) {
     const hist = JSON.parse(localStorage.getItem('history_' + tableId) || '[]');
     if (!hist.some(i => NOMIHODAI_ITEMS.includes(i.name))) return;
-    if (localStorage.getItem('nomi_anchor_' + tableId)) return; // 既にセット済み
-    // Firestoreに書き込む → onSnapshotが両デバイスで発火 → アンカーをセット
+    if (localStorage.getItem('nomi_anchor_' + tableId)) return; // 既にセット済み    // Firestoreに書き込む → onSnapshotが両デバイスで発火 → アンカーをセット
     if (window.cloudSyncNomi) await window.cloudSyncNomi(tableId);
 }
 
 // 会計時に呼ぶ
 async function clearCountdown(tableId) {
-    localStorage.removeItem('nomi_start_' + tableId);
-    localStorage.removeItem('nomi_offset_' + tableId);
+    localStorage.removeItem('nomi_elapsed_' + tableId);
     localStorage.removeItem('nomi_anchor_' + tableId);
     delete lastAlertedTable[tableId];
     if (window.cloudSyncNomiClear) await window.cloudSyncNomiClear(tableId);
 }
 
 function getCountdownRemaining(tableId) {
-    const nomiStart = parseInt(localStorage.getItem('nomi_start_' + tableId));
-    const offset = parseInt(localStorage.getItem('nomi_offset_' + tableId));
-    if (!nomiStart) return null;
-    // serverNow = デバイス時計をサーバー時刻に補正
-    const serverNow = Date.now() - offset;
-    const elapsed = Math.floor((serverNow - nomiStart) / 1000);
-    return NOMIHODAI_MINUTES * 60 - elapsed;
+    const elapsedAtSnapshot = parseInt(localStorage.getItem('nomi_elapsed_' + tableId));
+    const anchor = parseInt(localStorage.getItem('nomi_anchor_' + tableId));
+    if (!anchor || isNaN(elapsedAtSnapshot)) return null;
+    const sinceSnapshot = Math.floor((Date.now() - anchor) / 1000);
+    return NOMIHODAI_MINUTES * 60 - elapsedAtSnapshot - sinceSnapshot;
 }
 
 // 1秒ごとにバッジだけ更新

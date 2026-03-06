@@ -7,11 +7,23 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <script src="StarWebPrintBuilder.js"></script>
 <script src="StarWebPrintTrader.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/encoding-japanese/2.1.0/encoding.min.js"></script>
 <script>
-function str {
-  const arr = Encoding.convert(Encoding.stringToCode(str), {to:'SJIS', from:'UNICODE'});
-  return arr.map(c => String.fromCharCode(c)).join('');
-}
+// StarWebPRNTのXMLをShift-JISバイナリに変換して送信
+(function() {
+    const _origSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function(body) {
+        if (body && typeof body === 'string' && body.indexOf('PrintData') !== -1 && typeof Encoding !== 'undefined') {
+            try {
+                const sjisArr = Encoding.convert(Encoding.stringToCode(body), {to:'SJIS', from:'UNICODE'});
+                const blob = new Blob([new Uint8Array(sjisArr)], {type: 'text/xml'});
+                _origSend.call(this, blob);
+                return;
+            } catch(e) { console.warn('SJIS変換失敗:', e); }
+        }
+        _origSend.call(this, body);
+    };
+})();
 </script>
 <style>
 :root { --primary: #f39c12; --secondary: #fbb03b; --bg: #f8f8f8; --text: #333; --accent: #2ecc71; --gray: #999; --danger: #e74c3c; --info: #3498db; --dark: #444; }

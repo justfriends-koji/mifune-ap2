@@ -835,7 +835,7 @@ function removeCustomTable(tId, e) {
 function showIndex() { window.isEditing = false; hideAll(); document.getElementById('view-index').style.display = 'flex'; renderIndex(); }
 function checkAdminAuth() { if(window.currentUser) showAdmin('day'); else { hideAll(); document.getElementById('view-login').style.display = 'flex'; } }
 function handleLogin() { window.loginOwner(document.getElementById('login-email').value, document.getElementById('login-pass').value); }
-function onTableClick(tId) { currentTable = tId; if(localStorage.getItem('history_' + tId)) showMenu(); else showGuestInput(); }
+function onTableClick(tId) { currentTable = tId; const hist = JSON.parse(localStorage.getItem('history_' + tId) || '[]'); const guests = parseInt(localStorage.getItem('guests_' + tId)) || 0; if(hist.length > 0 || guests > 0) showMenu(); else showGuestInput(); }
 
 async function showAdmin(mode) {
     window.showAdmin = showAdmin;

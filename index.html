@@ -227,9 +227,7 @@ function autoKitchenPrint(tableId, mobileOrders) {
             // キッチン伝票作成
             r += b.createInitializationElement();
             r += b.createAlignmentElement({position: 'left'});
-            r += b.createTextElement({data: `[${tableId}][M] ${item.name} ${item.qty}\n`, width: 2, height: 2});
-            r += b.createTextElement({data: `--------------------------\n`});
-            r += b.createTextElement({data: `${new Date().toLocaleTimeString()} (入店:${checkin})\n`});
+            r += b.createTextElement({data: `[${tableId}][M] ${item.name}  ${item.qty}\n`, width: 2, height: 2});
             r += b.createCutPaperElement({type: 'partial'});
         });
     });
@@ -1225,10 +1223,7 @@ if(currentCart.length === 0) return;
 const b = new StarWebPrintBuilder(); let r = ""; const c = localStorage.getItem('checkin_'+currentTable) || "--:--";
 currentCart.forEach(item => {
 r += b.createInitializationElement(); r += b.createAlignmentElement({position: 'left'});
-const itemLine = `[${currentTable}] ${item.name} ${item.qty}\n`;
-r += b.createTextElement({data: itemLine, width: 2, height: 2 });
-r += b.createTextElement({data: `--------------------------\n`});
-r += b.createTextElement({data: `${new Date().toLocaleTimeString()} (入店:${c})\n`});
+r += b.createTextElement({data: `[${currentTable}] ${item.name}  ${item.qty}\n`, width: 2, height: 2});
 r += b.createCutPaperElement({type: 'partial'});
 });
 const t = new StarWebPrintTrader({url: KITCHEN_PRINTER_URL});
@@ -1290,23 +1285,36 @@ closeReceiptChoice(); const hist = JSON.parse(localStorage.getItem('history_'+cu
 const b = new StarWebPrintBuilder(); let r = b.createInitializationElement(); r += b.createPeripheralElement({channel: 1, pulse: 200});
 if(doPrint) {
 let sub8 = 0, tax8 = 0, sub10 = 0, tax10 = 0;
-r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥\n三船 東札幌店\n`, width: 2, height: 2}); r += b.createTextElement({data: `札幌市白石区東札幌2条3丁目9-2\nTEL: 011-816-8881\n\n`}); r += b.createAlignmentElement({position: 'left'});
-r += b.createTextElement({data: `日時: ${new Date().toLocaleString()}\n席: ${currentTable} 客: ${g}名 入店: ${c}\n--------------------------------\n`});
+r += b.createAlignmentElement({position: 'center'});
+r += b.createTextElement({data: `美唄焼鳥\n三船 東札幌店\n`, width: 2, height: 2});
+r += b.createTextElement({data: `札幌市白石区東札幌2条3丁目9-2\nTEL: 011-816-8881\n`});
+r += b.createTextElement({data: `--------------------------------\n`});
+r += b.createTextElement({data: `登録番号 T4430001061003\n`});
+r += b.createTextElement({data: `--------------------------------\n`});
+r += b.createAlignmentElement({position: 'left'});
+r += b.createTextElement({data: `< 領　収　書 >\n`});
+r += b.createTextElement({data: `日時: ${new Date().toLocaleString()}\n`});
+r += b.createTextElement({data: `席: ${currentTable}  客: ${g}名  入店: ${c}\n`});
+r += b.createTextElement({data: `--------------------------------\n`});
 hist.forEach(i => {
     const l = i.price * i.qty;
     const t = Math.floor(l * i.rate);
     const taxInc = l + t;
     if(i.rate === 0.08) { sub8 += l; tax8 += t; } else { sub10 += l; tax10 += t; }
     const mark = i.rate === 0.08 ? '※' : '';
-    r += b.createTextElement({data: `${i.name}${mark}\n  ${i.qty}点 x ¥${i.price}    ¥${taxInc.toLocaleString()}\n`});
+    r += b.createTextElement({data: `${i.name}${mark}\n  ${i.qty}点 x ¥${i.price.toLocaleString()}    ¥${taxInc.toLocaleString()}内\n`});
 });
 const grandTotal = sub8 + tax8 + sub10 + tax10;
 r += b.createTextElement({data: `--------------------------------\n`});
-r += b.createAlignmentElement({position: 'right'}); r += b.createTextElement({data: `税込合計: ¥${grandTotal.toLocaleString()}\n`, width: 2, height: 2});
+r += b.createTextElement({data: `小計/${hist.reduce((s,i)=>s+i.qty,0)}点\n`});
+if(sub10 > 0) r += b.createTextElement({data: `(内税10%対象  ¥${(sub10+tax10).toLocaleString()})\n`});
+if(sub8  > 0) r += b.createTextElement({data: `(※内税 8%対象  ¥${(sub8+tax8).toLocaleString()})\n`});
+r += b.createTextElement({data: `--------------------------------\n`});
+r += b.createAlignmentElement({position: 'center'});
+r += b.createTextElement({data: `合　計\n`, width: 2, height: 1});
+r += b.createTextElement({data: `¥${grandTotal.toLocaleString()}\n`, width: 2, height: 2});
 r += b.createAlignmentElement({position: 'left'});
 r += b.createTextElement({data: `--------------------------------\n`});
-if(sub10 > 0) r += b.createTextElement({data: `10%対象: ¥${(sub10+tax10).toLocaleString()}  消費税: ¥${tax10.toLocaleString()}\n`});
-if(sub8 > 0)  r += b.createTextElement({data: `※8%対象: ¥${(sub8+tax8).toLocaleString()}   消費税: ¥${tax8.toLocaleString()}\n`});
 r += b.createTextElement({data: `お支払い: ${currentPaymentMethod}\n`});
 if (currentPaymentMethod === '現金') {
     const received = parseInt(document.getElementById('cash-received').value) || 0;
@@ -1316,7 +1324,11 @@ if (currentPaymentMethod === '現金') {
         r += b.createTextElement({data: `お預かり: ¥${received.toLocaleString()}\nお釣り:   ¥${Math.max(0, change).toLocaleString()}\n`});
     }
 }
-r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `\n[登録番号] T4430001061003\n株式会社Stag Beetle Corporation\n\n`}); r += b.createCutPaperElement({type: 'partial'});
+r += b.createTextElement({data: `--------------------------------\n`});
+r += b.createAlignmentElement({position: 'center'});
+r += b.createTextElement({data: `No.${currentTable}  テーブル${currentTable}  ${g}名\n`});
+r += b.createTextElement({data: `ありがとうございました\n\n`});
+r += b.createCutPaperElement({type: 'partial'});
 }
 const t = new StarWebPrintTrader({url: RECEIPT_PRINTER_URL}); t.onReceive = async () => { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable, currentPaymentMethod); showIndex(); }; t.sendMessage({request: r});
 }

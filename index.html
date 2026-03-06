@@ -27,12 +27,15 @@ function _toSJISBytes(str) {
 (function() {
   const _origSend = XMLHttpRequest.prototype.send;
   XMLHttpRequest.prototype.send = function(body) {
-    if (body && typeof body === 'string' && body.indexOf('StarWebPRNT') !== -1) {
+    if (body && typeof body === 'string' && (body.indexOf('PrintData') !== -1 || body.indexOf('printdata') !== -1 || body.indexOf('textElement') !== -1)) {
+      console.log('🖨️ 送信XML先頭:', body.substring(0, 200));
       try {
         const bytes = _toSJISBytes(body);
         _origSend.call(this, new Uint8Array(bytes).buffer);
         return;
       } catch(e) { console.warn('SJIS変換失敗:', e); }
+    } else if (body && typeof body === 'string') {
+      console.log('⚠️ 変換スキップ:', body.substring(0, 100));
     }
     _origSend.call(this, body);
   };

@@ -191,7 +191,7 @@ function autoKitchenPrint(tableId, mobileOrders) {
             if (exist) exist.qty += item.qty;
             else hist.push({ name: item.name, price: item.price, qty: item.qty, rate: item.rate || 0.10 });
             // キッチン伝票作成
-            r += b.createInitializationElement() + b.createInternationalElement({character: "Japan"}) + b.createCodePageElement({codePage: "UTF8"});
+            r += b.createInitializationElement();
             r += b.createAlignmentElement({position: 'left'});
             r += b.createTextElement({data: `[${tableId}][M] ${item.name} ${item.qty}\n`, width: 2, height: 2});
             r += b.createTextElement({data: `--------------------------\n`});
@@ -1048,7 +1048,7 @@ async function printReport(mode) {
         const sales = allSales.filter(s => { const d = s.timestamp.toDate(); return d.getFullYear()===selY && d.getMonth()+1===selM; });
         if (sales.length === 0) return alert("データなし");
         let total = 0, guests = 0; sales.forEach(s => { total += s.total; guests += s.guests; });
-        const b = new StarWebPrintBuilder(); let r = b.createInitializationElement() + b.createInternationalElement({character: "Japan"}) + b.createCodePageElement({codePage: "UTF8"});
+        const b = new StarWebPrintBuilder(); let r = b.createInitializationElement();
         r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n【月計】${selY}年${selM}月\n`, width:2, height:2});
         r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `--------------------------------\n売上: ¥${total.toLocaleString()}\n客数: ${guests}名\n件数: ${sales.length}件\n--------------------------------\n`});
         const dayMap = {};
@@ -1084,7 +1084,7 @@ async function printReport(mode) {
         const targetDate = new Date(chosen);
         const dow = ['日','月','火','水','木','金','土'][targetDate.getDay()];
         const dateLabel = `${targetDate.getFullYear()}/${String(targetDate.getMonth()+1).padStart(2,'0')}/${String(targetDate.getDate()).padStart(2,'0')}（${dow}）`;
-        const b = new StarWebPrintBuilder(); let r = b.createInitializationElement() + b.createInternationalElement({character: "Japan"}) + b.createCodePageElement({codePage: "UTF8"});
+        const b = new StarWebPrintBuilder(); let r = b.createInitializationElement();
         r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n【日計】\n`, width:2, height:2});
         r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `${dateLabel}\n--------------------------------\n売上: ¥${total.toLocaleString()}\n客数: ${guests}名\n件数: ${sales.length}件\n--------------------------------\n`});
         r += b.createCutPaperElement({type: 'partial'});
@@ -1190,7 +1190,7 @@ async function sendToKitchen() {
 if(currentCart.length === 0) return;
 const b = new StarWebPrintBuilder(); let r = ""; const c = localStorage.getItem('checkin_'+currentTable) || "--:--";
 currentCart.forEach(item => {
-r += b.createInitializationElement() + b.createInternationalElement({character: "Japan"}) + b.createCodePageElement({codePage: "UTF8"}); r += b.createAlignmentElement({position: 'left'});
+r += b.createInitializationElement(); r += b.createAlignmentElement({position: 'left'});
 const itemLine = `[${currentTable}] ${item.name} ${item.qty}\n`;
 r += b.createTextElement({ data: itemLine, width: 2, height: 2 });
 r += b.createTextElement({data: `--------------------------\n`});
@@ -1253,7 +1253,7 @@ function selectPayment(method) {
 
 async function pay(doPrint) {
 closeReceiptChoice(); const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]'); const g = localStorage.getItem('guests_'+currentTable); const c = localStorage.getItem('checkin_'+currentTable);
-const b = new StarWebPrintBuilder(); let r = b.createInitializationElement() + b.createInternationalElement({character: "Japan"}) + b.createCodePageElement({codePage: "UTF8"}); r += b.createPeripheralElement({channel: 1, pulse: 200});
+const b = new StarWebPrintBuilder(); let r = b.createInitializationElement(); r += b.createPeripheralElement({channel: 1, pulse: 200});
 if(doPrint) {
 let sub8 = 0, tax8 = 0, sub10 = 0, tax10 = 0;
 r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥\n三船 東札幌店\n`, width: 2, height: 2}); r += b.createTextElement({data: `札幌市白石区東札幌2条3丁目9-2\nTEL: 011-816-8881\n\n`}); r += b.createAlignmentElement({position: 'left'});
@@ -1332,7 +1332,7 @@ function printRyoshuusho() {
     const now = new Date();
     const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
 
-    const b = new StarWebPrintBuilder(); let r = b.createInitializationElement() + b.createInternationalElement({character: "Japan"}) + b.createCodePageElement({codePage: "UTF8"});
+    const b = new StarWebPrintBuilder(); let r = b.createInitializationElement();
     r += b.createAlignmentElement({position: 'center'});
     r += b.createTextElement({data: `領　収　書\n`, width: 2, height: 2});
     r += b.createAlignmentElement({position: 'left'});

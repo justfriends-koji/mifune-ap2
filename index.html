@@ -27,7 +27,7 @@ function _toSJISBytes(str) {
 (function() {
   const _origSend = XMLHttpRequest.prototype.send;
   XMLHttpRequest.prototype.send = function(body) {
-    if (body && typeof body === 'string' && (body.indexOf('PrintData') !== -1 || body.indexOf('printdata') !== -1 || body.indexOf('textElement') !== -1)) {
+    if (body && typeof body === 'string' && body.indexOf('StarWebPrint') !== -1) {
       console.log('🖨️ 送信XML先頭:', body.substring(0, 200));
       try {
         const bytes = _toSJISBytes(body);

@@ -1315,13 +1315,14 @@ const b = new StarWebPrintBuilder(); let r = b.createInitializationElement(); r 
 if(doPrint) {
 let sub8 = 0, tax8 = 0, sub10 = 0, tax10 = 0;
 r += b.createAlignmentElement({position: 'center'});
-r += b.createTextElement({data: `美唄焼鳥\n三船 東札幌店\n`, width: 2, height: 2});
+r += b.createTextElement({data: `美唄焼鳥 三船 東札幌店\n`, width: 2, height: 2});
 r += b.createTextElement({data: `札幌市白石区東札幌2条3丁目9-2\nTEL: 011-816-8881\n`});
 r += b.createTextElement({data: `--------------------------------\n`});
 r += b.createTextElement({data: `登録番号 T4430001061003\n`});
 r += b.createTextElement({data: `--------------------------------\n`});
-r += b.createAlignmentElement({position: 'left'});
+r += b.createAlignmentElement({position: 'center'});
 r += b.createTextElement({data: `< 領　収　書 >\n`});
+r += b.createAlignmentElement({position: 'left'});
 r += b.createTextElement({data: `日時: ${new Date().toLocaleString()}\n`});
 r += b.createTextElement({data: `席: ${currentTable}  客: ${g}名  入店: ${c}\n`});
 r += b.createTextElement({data: `--------------------------------\n`});

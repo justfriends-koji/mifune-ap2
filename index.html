@@ -109,7 +109,7 @@ footer { width: 100%; display: flex; flex-direction: column; z-index: 100; box-s
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc, query, orderBy, getDocs, where, Timestamp, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc, query, orderBy, getDocs, where, Timestamp, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -1220,22 +1220,17 @@ async function testPay() { if(window.saveSaleToCloud) await window.saveSaleToClo
 
 async function sendToKitchen() {
 if(currentCart.length === 0) return;
-const b = new StarWebPrintBuilder(); let r = ""; const c = localStorage.getItem('checkin_'+currentTable) || "--:--";
-currentCart.forEach(item => {
-r += b.createInitializationElement(); r += b.createAlignmentElement({position: 'left'});
-r += b.createTextElement({data: `[${currentTable}] ${item.name}  ${item.qty}\n`, width: 2, height: 2});
-r += b.createCutPaperElement({type: 'partial'});
-});
-const t = new StarWebPrintTrader({url: KITCHEN_PRINTER_URL});
-t.onReceive = async () => {
+// Firebase経由でキッチン印刷（モバイルオーダーと同方式）
+try {
+    const tableRef = doc(db, "tables", currentTable);
+    await setDoc(tableRef, { mobileOrders: arrayUnion({ items: currentCart, sentAt: Date.now() }) }, { merge: true });
+} catch(e) { console.warn('Firebase送信失敗:', e.message); }
 const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]');
 localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart)));
 localStorage.removeItem('cart_'+currentTable); currentCart = [];
 if(window.cloudSync) await window.cloudSync(currentTable);
 await startCountdownIfNeeded(currentTable);
 hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter();
-};
-t.sendMessage({request: r});
 }
 
 function calcChange() {

@@ -1224,13 +1224,13 @@ if(currentCart.length === 0) return;
 try {
     const tableRef = doc(db, "tables", currentTable);
     await setDoc(tableRef, { mobileOrders: arrayUnion({ items: currentCart, sentAt: Date.now() }) }, { merge: true });
-} catch(e) { console.warn('Firebase送信失敗:', e.message); }
-const hist = JSON.parse(localStorage.getItem('history_'+currentTable) || '[]');
-localStorage.setItem('history_'+currentTable, JSON.stringify(hist.concat(currentCart)));
-localStorage.removeItem('cart_'+currentTable); currentCart = [];
-if(window.cloudSync) await window.cloudSync(currentTable);
-await startCountdownIfNeeded(currentTable);
-hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter();
+    // autoKitchenPrintがhistory更新・cloudSync・カート削除を行うので、ここではカートのみクリア
+    localStorage.removeItem('cart_'+currentTable); currentCart = [];
+    hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter();
+} catch(e) {
+    console.warn('Firebase送信失敗:', e.message);
+    alert('送信に失敗しました');
+}
 }
 
 function calcChange() {

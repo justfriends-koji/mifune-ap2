@@ -190,12 +190,18 @@ if (data.nomihodaiStart) {
 // ▼ モバイルオーダー検知・自動キッチン印刷
 const mobileOrders = data.mobileOrders || [];
 if (mobileOrders.length > 0) {
-    // 先にクリアしてから印刷（二重印刷防止）
     setDoc(doc(db, "tables", tId), { mobileOrders: [] }, { merge: true }).then(() => {
-        autoKitchenPrint(tId, mobileOrders);
+        autoKitchenPrint(tId, mobileOrders, 'M');
     });
 }
-// ▲ モバイルオーダー検知
+// ▼ ハンディオーダー検知・自動キッチン印刷
+const handyOrders = data.handyOrders || [];
+if (handyOrders.length > 0) {
+    setDoc(doc(db, "tables", tId), { handyOrders: [] }, { merge: true }).then(() => {
+        autoKitchenPrint(tId, handyOrders, 'H');
+    });
+}
+// ▲ オーダー検知
 
 });
 renderIndex(); updateFooter();
@@ -213,7 +219,7 @@ updatedAt: Timestamp.now()
 };
 
 // ▼▼▼ モバイルオーダー自動キッチン印刷 ▼▼▼
-function autoKitchenPrint(tableId, mobileOrders) {
+function autoKitchenPrint(tableId, mobileOrders, tag) { tag = tag || 'M';
     const b = new StarWebPrintBuilder();
     let r = '';
     const checkin = localStorage.getItem('checkin_' + tableId) || '--:--';
@@ -228,7 +234,7 @@ function autoKitchenPrint(tableId, mobileOrders) {
             // キッチン伝票作成
             r += b.createInitializationElement();
             r += b.createAlignmentElement({position: 'left'});
-            r += b.createTextElement({data: `[${tableId}][M] ${item.name}  ${item.qty}\n`, width: 2, height: 2});
+            r += b.createTextElement({data: `[${tableId}]${tag === 'M' ? '[M] ' : ' '}${item.name}  ${item.qty}\n`, width: 2, height: 2});
             r += b.createCutPaperElement({type: 'partial'});
         });
     });
@@ -1224,7 +1230,7 @@ if(currentCart.length === 0) return;
 // Firebase経由でキッチン印刷（モバイルオーダーと同方式）
 try {
     const tableRef = window._doc(window.db, "tables", currentTable);
-    await window._setDoc(tableRef, { mobileOrders: window._arrayUnion({ items: currentCart, sentAt: Date.now() }) }, { merge: true });
+    await window._setDoc(tableRef, { handyOrders: window._arrayUnion({ items: currentCart, sentAt: Date.now() }) }, { merge: true });
     // autoKitchenPrintがhistory更新・cloudSync・カート削除を行うので、ここではカートのみクリア
     localStorage.removeItem('cart_'+currentTable); currentCart = [];
     hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter();

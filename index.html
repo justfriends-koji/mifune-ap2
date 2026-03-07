@@ -207,6 +207,33 @@ if (handyOrders.length > 0) {
 renderIndex(); updateFooter();
 });
 
+// ▼ 印刷キュー監視（このデバイスがプリンター担当）
+onSnapshot(doc(db, '_system', 'printQueue'), (snap) => {
+    if (!snap.exists()) return;
+    const jobs = snap.data().jobs || [];
+    if (jobs.length === 0) return;
+    // クリアしてから印刷
+    setDoc(doc(db, '_system', 'printQueue'), { jobs: [] }, { merge: true }).then(() => {
+        jobs.forEach(job => {
+            const t = new StarWebPrintTrader({url: RECEIPT_PRINTER_URL});
+            t.onError = () => console.warn('印刷キューエラー');
+            t.sendMessage({request: job.xml});
+        });
+    });
+});
+// ▲ 印刷キュー監視
+
+
+// ▼▼▼ Firebase印刷キュー ▼▼▼
+window.queuePrint = async function(xmlRequest) {
+    try {
+        await window._setDoc(window._doc(window.db, '_system', 'printQueue'), {
+            jobs: window._arrayUnion({ xml: xmlRequest, id: Date.now() })
+        }, { merge: true });
+    } catch(e) { console.warn('印刷キュー送信失敗:', e.message); alert('印刷送信に失敗しました'); }
+};
+// ▲▲▲ Firebase印刷キュー ▲▲▲
+
 window.cloudSync = async (tableId) => {
 try {
 await setDoc(doc(db, "tables", tableId), {
@@ -1103,7 +1130,7 @@ async function printReport(mode) {
         sorted.forEach(([key, s]) => { r += b.createTextElement({data: `${s.label}\n  ${s.c}件 / ${s.g}名 / ¥${s.t.toLocaleString()}\n`}); });
         r += b.createTextElement({data: `--------------------------------\n`});
         r += b.createCutPaperElement({type: 'partial'});
-        const t = new StarWebPrintTrader({url: RECEIPT_PRINTER_URL}); t.sendMessage({request: r}); alert("印刷しました");
+        await window.queuePrint(r); alert("印刷しました");
     } else {
         // 日計：過去10日分の選択肢
         const options = [];
@@ -1127,7 +1154,7 @@ async function printReport(mode) {
         r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n【日計】\n`, width:2, height:2});
         r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `${dateLabel}\n--------------------------------\n売上: ¥${total.toLocaleString()}\n客数: ${guests}名\n件数: ${sales.length}件\n--------------------------------\n`});
         r += b.createCutPaperElement({type: 'partial'});
-        const t = new StarWebPrintTrader({url: RECEIPT_PRINTER_URL}); t.sendMessage({request: r}); alert("印刷しました");
+        await window.queuePrint(r); alert("印刷しました");
     }
 }
 
@@ -1332,7 +1359,9 @@ r += b.createTextElement({data: `No.${currentTable}  テーブル${currentTable}
 r += b.createTextElement({data: `ありがとうございました\n\n`});
 r += b.createCutPaperElement({type: 'partial'});
 }
-const t = new StarWebPrintTrader({url: RECEIPT_PRINTER_URL}); t.onReceive = async () => { if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable, currentPaymentMethod); showIndex(); }; t.sendMessage({request: r});
+if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable, currentPaymentMethod);
+await window.queuePrint(r);
+showIndex();
 }
 
 // ▼▼▼ 領収書機能追加 ▼▼▼
@@ -1373,7 +1402,7 @@ function updateRyoshuushoPreview() {
         `<div style="font-size:11px; text-align:right; margin-top:6px;">美唄焼鳥三船 東札幌店<br>登録番号 T4430001061003</div>`;
 }
 
-function printRyoshuusho() {
+async function printRyoshuusho() {
     const atena = document.getElementById('ryoshuusho-atena').value || '上様';
     const tadashi = document.getElementById('ryoshuusho-tadashi').value || 'お食事代として';
     const { sub, tax, total } = getRyoshuushoTotal();
@@ -1400,10 +1429,8 @@ function printRyoshuusho() {
     r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n札幌市白石区東札幌2条3丁目9-2\nTEL: 011-816-8881\n登録番号 T4430001061003\n\n`});
     r += b.createCutPaperElement({type: 'partial'});
 
-    const t = new StarWebPrintTrader({url: RECEIPT_PRINTER_URL});
-    t.onReceive = () => { closeRyoshuusho(); alert("領収書を印刷しました"); };
-    t.onError = () => { alert("プリンター接続エラー"); };
-    t.sendMessage({request: r});
+    await window.queuePrint(r);
+    closeRyoshuusho(); alert("領収書を印刷しました");
 }
 
 // 宛名・但し書き変更時にプレビュー更新

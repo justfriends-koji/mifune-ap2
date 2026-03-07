@@ -125,6 +125,7 @@ measurementId: "G-7F8BM4SBGR"
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+window.db = db; window._doc = doc; window._setDoc = setDoc; window._arrayUnion = arrayUnion;
 
 window.currentUser = null;
 window.isEditing = false;
@@ -1222,8 +1223,8 @@ async function sendToKitchen() {
 if(currentCart.length === 0) return;
 // Firebase経由でキッチン印刷（モバイルオーダーと同方式）
 try {
-    const tableRef = doc(db, "tables", currentTable);
-    await setDoc(tableRef, { mobileOrders: arrayUnion({ items: currentCart, sentAt: Date.now() }) }, { merge: true });
+    const tableRef = window._doc(window.db, "tables", currentTable);
+    await window._setDoc(tableRef, { mobileOrders: window._arrayUnion({ items: currentCart, sentAt: Date.now() }) }, { merge: true });
     // autoKitchenPrintがhistory更新・cloudSync・カート削除を行うので、ここではカートのみクリア
     localStorage.removeItem('cart_'+currentTable); currentCart = [];
     hideAll(); document.getElementById('view-success').style.display = 'flex'; updateFooter();

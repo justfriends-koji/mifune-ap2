@@ -1120,10 +1120,17 @@ async function printReport(mode) {
         const allSales = await window.getSalesData('dow');
         const sales = allSales.filter(s => { const d = s.timestamp.toDate(); return d.getFullYear()===selY && d.getMonth()+1===selM; });
         if (sales.length === 0) return alert("データなし");
-        let total = 0, guests = 0; sales.forEach(s => { total += s.total; guests += s.guests; });
+        let total = 0, guests = 0, motsuCount = 0, toriCount = 0;
+        sales.forEach(s => {
+            total += s.total; guests += s.guests;
+            (s.items || []).forEach(item => {
+                if (item.name && item.name.includes('もつ串')) motsuCount += item.qty;
+                if (item.name && item.name.includes('鳥精肉')) toriCount += item.qty;
+            });
+        });
         const b = new StarWebPrintBuilder(); let r = b.createInitializationElement();
         r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n【月計】${selY}年${selM}月\n`, width:2, height:2});
-        r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `--------------------------------\n売上: ¥${total.toLocaleString()}\n客数: ${guests}名\n件数: ${sales.length}件\n--------------------------------\n`});
+        r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `--------------------------------\n売上: ¥${total.toLocaleString()}\n客数: ${guests}名\n件数: ${sales.length}件\n--------------------------------\nもつ串: ${motsuCount}串\n鳥精肉: ${toriCount}串\n--------------------------------\n`});
         const dayMap = {};
         sales.forEach(s => {
             const d = s.timestamp.toDate();
@@ -1153,13 +1160,20 @@ async function printReport(mode) {
         const allSales = await window.getSalesData('dow');
         const sales = allSales.filter(s => s.timestamp.toDate().toDateString() === chosen);
         if (sales.length === 0) return alert("データなし");
-        let total = 0, guests = 0; sales.forEach(s => { total += s.total; guests += s.guests; });
+        let total = 0, guests = 0, motsuCount = 0, toriCount = 0;
+        sales.forEach(s => {
+            total += s.total; guests += s.guests;
+            (s.items || []).forEach(item => {
+                if (item.name && item.name.includes('もつ串')) motsuCount += item.qty;
+                if (item.name && item.name.includes('鳥精肉')) toriCount += item.qty;
+            });
+        });
         const targetDate = new Date(chosen);
         const dow = ['日','月','火','水','木','金','土'][targetDate.getDay()];
         const dateLabel = `${targetDate.getFullYear()}/${String(targetDate.getMonth()+1).padStart(2,'0')}/${String(targetDate.getDate()).padStart(2,'0')}（${dow}）`;
         const b = new StarWebPrintBuilder(); let r = b.createInitializationElement();
         r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n【日計】\n`, width:2, height:2});
-        r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `${dateLabel}\n--------------------------------\n売上: ¥${total.toLocaleString()}\n客数: ${guests}名\n件数: ${sales.length}件\n--------------------------------\n`});
+        r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `${dateLabel}\n--------------------------------\n売上: ¥${total.toLocaleString()}\n客数: ${guests}名\n件数: ${sales.length}件\n--------------------------------\nもつ串: ${motsuCount}串\n鳥精肉: ${toriCount}串\n--------------------------------\n`});
         r += b.createCutPaperElement({type: 'partial'});
         await window.queuePrint(r); alert("印刷しました");
     }

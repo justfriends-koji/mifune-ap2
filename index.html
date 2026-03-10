@@ -756,7 +756,7 @@ function getCustomTableNames() { return JSON.parse(localStorage.getItem('customT
 function saveCustomTableNames(arr) {
   localStorage.setItem('customTables', JSON.stringify(arr));
   // Firestoreに同期
-  setDoc(doc(db, '_system', 'config'), { customTables: arr }, { merge: true }).catch(e => console.warn('customTables同期エラー:', e));
+  window._setDoc(window._doc(db, '_system', 'config'), { customTables: arr }, { merge: true }).catch(e => console.warn('customTables同期エラー:', e));
 }
 function getTablesL() { return [...baseTablesL, ...getCustomTableNames()]; }
 const tablesL = baseTablesL; // 後方互換

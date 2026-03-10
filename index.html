@@ -212,6 +212,21 @@ renderIndex(); updateFooter();
 }
 startTablesListener();
 
+// ▼ カスタム席名Firestore同期
+onSnapshot(doc(db, '_system', 'config'), (snap) => {
+  if (!snap.exists()) return;
+  const data = snap.data();
+  if (Array.isArray(data.customTables)) {
+    const current = JSON.stringify(getCustomTableNames());
+    const incoming = JSON.stringify(data.customTables);
+    if (current !== incoming) {
+      localStorage.setItem('customTables', incoming);
+      renderIndex();
+    }
+  }
+});
+// ▲ カスタム席名Firestore同期
+
 // ▼ 印刷キュー監視（このデバイスがプリンター担当）
 onSnapshot(doc(db, '_system', 'printQueue'), (snap) => {
     if (!snap.exists()) return;
@@ -738,7 +753,11 @@ async function buildPopularCategory() {
 // ▲▲▲ 人気メニュー機能追加 ▲▲▲
 const baseTablesL = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
 function getCustomTableNames() { return JSON.parse(localStorage.getItem('customTables') || '[]'); }
-function saveCustomTableNames(arr) { localStorage.setItem('customTables', JSON.stringify(arr)); }
+function saveCustomTableNames(arr) {
+  localStorage.setItem('customTables', JSON.stringify(arr));
+  // Firestoreに同期
+  setDoc(doc(db, '_system', 'config'), { customTables: arr }, { merge: true }).catch(e => console.warn('customTables同期エラー:', e));
+}
 function getTablesL() { return [...baseTablesL, ...getCustomTableNames()]; }
 const tablesL = baseTablesL; // 後方互換
 

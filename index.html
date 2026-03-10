@@ -220,7 +220,7 @@ onSnapshot(doc(db, '_system', 'printQueue'), (snap) => {
     // クリアしてから印刷
     setDoc(doc(db, '_system', 'printQueue'), { jobs: [] }, { merge: true }).then(() => {
         jobs.forEach(job => {
-            const t = new StarWebPrintTrader({url: RECEIPT_PRINTER_URL});
+            const t = new StarWebPrintTrader({url: getPrinterUrl()});
             t.onError = () => console.warn('印刷キューエラー');
             t.sendMessage({request: job.xml});
         });
@@ -274,7 +274,7 @@ function autoKitchenPrint(tableId, mobileOrders, tag) { tag = tag || 'M';
     window.cloudSync(tableId); // 印刷結果に関わらず即反映
 
     if (!r) return;
-    const t = new StarWebPrintTrader({url: KITCHEN_PRINTER_URL});
+    const t = new StarWebPrintTrader({url: getPrinterUrl()});
     t.onError = () => { console.warn('モバイルオーダー印刷エラー'); };
     t.sendMessage({request: r});
 }
@@ -358,6 +358,27 @@ window.cloudSyncNomiClear = async (tableId) => {
 // サーバー時刻とのオフセット補正
 </script>
 
+<div id="overlay-printer-settings" class="overlay" style="display:none;">
+  <div class="modal" style="max-width:360px;">
+    <h3 style="margin:0 0 16px;font-size:18px;">🖨 プリンター設定</h3>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:13px;color:#666;">プリンターIPアドレス</label>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+        <span style="font-size:14px;color:#333;">http://</span>
+        <input id="printer-ip-input" type="text" placeholder="192.168.1.6" inputmode="decimal"
+          style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:16px;">
+      </div>
+    </div>
+    <div style="font-size:12px;color:#888;margin-bottom:16px;">
+      ※ StarWebPRNT対応プリンターのLAN IPを入力してください
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="savePrinterSettings()" style="flex:1;padding:12px;background:#4caf50;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;">保存</button>
+      <button onclick="document.getElementById('overlay-printer-settings').style.display='none'" style="flex:1;padding:12px;background:#eee;color:#333;border:none;border-radius:8px;font-size:15px;cursor:pointer;">キャンセル</button>
+    </div>
+  </div>
+</div>
+
 <div id="overlay-add-table" class="overlay" style="display:none;">
   <div class="modal">
     <div style="font-weight:bold; font-size:17px; margin-bottom:16px;">＋ 席を追加</div>
@@ -370,7 +391,7 @@ window.cloudSyncNomiClear = async (tableId) => {
   </div>
 </div>
 
-<div id="view-index" class="view active"><header><div class="admin-btn" id="admin-btn-label" onclick="checkAdminAuth()">売上管理</div><span>三船 席選択</span><div class="reload-btn" onclick="location.reload()">↻</div></header><div class="grid-tables" id="table-grid"></div></div>
+<div id="view-index" class="view active"><header><div class="admin-btn" id="admin-btn-label" onclick="checkAdminAuth()">売上管理</div><span>三船 席選択</span><div style="display:flex;gap:4px;"><div class="reload-btn" onclick="openPrinterSettings()" title="プリンター設定">⚙</div><div class="reload-btn" onclick="location.reload()">↻</div></div></header><div class="grid-tables" id="table-grid"></div></div>
 
 <div id="view-login" class="view">
 <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>認証</span></div></header>
@@ -852,9 +873,14 @@ function startCountdownTick() {
 }
 
 let currentTable = "", currentCart = [], tempGuestCount = "0";
-const PRINTER_URL = 'https://192.168.1.100/StarWebPRNT/SendMessage';
-const KITCHEN_PRINTER_URL = PRINTER_URL;  // キッチンプリンター（将来分離）
-const RECEIPT_PRINTER_URL = PRINTER_URL;  // レシートプリンター（将来分離）
+const DEFAULT_PRINTER_IP = '192.168.1.6';
+function getPrinterUrl() {
+  const ip = localStorage.getItem('printer_ip') || DEFAULT_PRINTER_IP;
+  return 'http://' + ip + '/StarWebPRNT/SendMessage';
+}
+function getPrinterIP() { return localStorage.getItem('printer_ip') || DEFAULT_PRINTER_IP; }
+const KITCHEN_PRINTER_URL = getPrinterUrl();  // キッチンプリンター（将来分離）
+const RECEIPT_PRINTER_URL = getPrinterUrl();  // レシートプリンター（将来分離）
 const isTestMode = true;
 
 function hideAll() { document.querySelectorAll('.view').forEach(v => v.style.display = 'none'); }
@@ -896,6 +922,17 @@ function removeCustomTable(tId, e) {
   saveCustomTableNames(getCustomTableNames().filter(n => n !== tId));
   localStorage.removeItem('history_'+tId); localStorage.removeItem('guests_'+tId); localStorage.removeItem('checkin_'+tId);
   renderIndex();
+}
+function openPrinterSettings() {
+  document.getElementById('printer-ip-input').value = getPrinterIP();
+  document.getElementById('overlay-printer-settings').style.display = 'flex';
+}
+function savePrinterSettings() {
+  const ip = document.getElementById('printer-ip-input').value.trim();
+  if (!ip) return alert('IPアドレスを入力してください');
+  localStorage.setItem('printer_ip', ip);
+  document.getElementById('overlay-printer-settings').style.display = 'none';
+  alert('保存しました: http://' + ip);
 }
 function showIndex() {
   const wasEditing = window.isEditing;

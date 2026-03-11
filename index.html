@@ -113,7 +113,7 @@ footer { width: 100%; display: flex; flex-direction: column; z-index: 100; box-s
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc, query, orderBy, getDocs, where, Timestamp, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyD_m3-1_fHNBNNhDRt6ZWXsilptcrvXCM",
@@ -145,12 +145,13 @@ btnLabel.style.background = "#fff";
 }
 });
 
-window.loginOwner = async (email, pass) => {
-try {
-await signInWithEmailAndPassword(auth, email, pass);
-alert("ログイン成功");
-showAdmin('day');
-} catch(e) { alert("ログイン失敗: パスワードをご確認ください"); }
+const provider = new GoogleAuthProvider();
+
+window.loginOwner = async () => {
+  try {
+    await signInWithPopup(auth, provider);
+    showAdmin('day');
+  } catch(e) { alert('ログイン失敗: ' + e.message); }
 };
 
 window.logoutOwner = () => { signOut(auth); alert("ログアウト完了"); showIndex(); };
@@ -418,7 +419,7 @@ window.cloudSyncNomiClear = async (tableId) => {
 
 <div id="view-login" class="view">
 <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>認証</span></div></header>
-<div class="login-container"><div style="font-weight:bold; margin-bottom:20px;">オーナーログイン</div><input type="email" id="login-email" class="login-input" placeholder="メールアドレス" autocomplete="email"><input type="password" id="login-pass" class="login-input" placeholder="パスワード" autocomplete="current-password"><button type="button" class="btn-large" style="background:var(--primary); color:white; margin-top:20px;" onclick="handleLogin()">ログインして表示</button></div>
+<div class="login-container"><div style="font-weight:bold; margin-bottom:20px;">オーナーログイン</div><button type="button" class="btn-large" style="background:#4285f4; color:white; margin-top:20px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="loginOwner()"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:20px;background:#fff;border-radius:2px;padding:2px;">Googleでログイン</button></div>
 </div>
 
 <div id="view-admin" class="view">
@@ -1006,7 +1007,7 @@ function showIndex() {
   }
 }
 function checkAdminAuth() { if(window.currentUser) showAdmin('day'); else { hideAll(); document.getElementById('view-login').style.display = 'flex'; } }
-function handleLogin() { window.loginOwner(document.getElementById('login-email').value, document.getElementById('login-pass').value); }
+function handleLogin() { window.loginOwner(); }
 window.handleLogin = handleLogin;
 function onTableClick(tId) { currentTable = tId; const hist = JSON.parse(localStorage.getItem('history_' + tId) || '[]'); const guests = parseInt(localStorage.getItem('guests_' + tId)) || 0; if(hist.length > 0 || guests > 0) showMenu(); else showGuestInput(); }
 

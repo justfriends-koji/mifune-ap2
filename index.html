@@ -113,7 +113,7 @@ footer { width: 100%; display: flex; flex-direction: column; z-index: 100; box-s
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc, query, orderBy, getDocs, where, Timestamp, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyD_m3-1_fHNBNNhDRt6ZWXsilptcrvXCM",
@@ -145,13 +145,14 @@ btnLabel.style.background = "#fff";
 }
 });
 
-const provider = new GoogleAuthProvider();
-
 window.loginOwner = async () => {
+  var e = localStorage.getItem('ownerEmail') || '';
+  var p = localStorage.getItem('ownerPass') || '';
+  if(!e || !p){ alert('設定画面でメールとパスワードを登録してください'); return; }
   try {
-    await signInWithPopup(auth, provider);
+    await signInWithEmailAndPassword(auth, e, p);
     showAdmin('day');
-  } catch(e) { alert('ログイン失敗: ' + e.message); }
+  } catch(err) { alert('ログイン失敗: メール・パスワードを確認してください'); }
 };
 
 window.logoutOwner = () => { signOut(auth); alert("ログアウト完了"); showIndex(); };
@@ -384,7 +385,7 @@ window.cloudSyncNomiClear = async (tableId) => {
 
 <div id="overlay-printer-settings" class="overlay" style="display:none;">
   <div class="modal" style="max-width:360px;">
-    <h3 style="margin:0 0 16px;font-size:18px;">🖨 プリンター設定</h3>
+    <h3 style="margin:0 0 16px;font-size:18px;">⚙ 設定</h3>
     <div style="margin-bottom:12px;">
       <label style="font-size:13px;color:#666;">プリンターIPアドレス</label>
       <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
@@ -393,8 +394,15 @@ window.cloudSyncNomiClear = async (tableId) => {
           style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:16px;">
       </div>
     </div>
+    <div style="border-top:1px solid #eee;margin:16px 0;padding-top:16px;">
+      <label style="font-size:13px;font-weight:bold;color:#333;">🔐 オーナーログイン設定</label>
+      <input id="owner-email-input" type="email" placeholder="メールアドレス"
+        style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;margin-top:8px;box-sizing:border-box;">
+      <input id="owner-pass-input" type="password" placeholder="パスワード"
+        style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;margin-top:8px;box-sizing:border-box;">
+    </div>
     <div style="font-size:12px;color:#888;margin-bottom:16px;">
-      ※ StarWebPRNT対応プリンターのLAN IPを入力してください
+      ※ Firebase AuthenticationのメールとパスワードをFirebase Consoleで登録してください
     </div>
     <div style="display:flex;gap:8px;">
       <button onclick="savePrinterSettings()" style="flex:1;padding:12px;background:#4caf50;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;">保存</button>
@@ -419,7 +427,7 @@ window.cloudSyncNomiClear = async (tableId) => {
 
 <div id="view-login" class="view">
 <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>認証</span></div></header>
-<div class="login-container"><div style="font-weight:bold; margin-bottom:20px;">オーナーログイン</div><button type="button" class="btn-large" style="background:#4285f4; color:white; margin-top:20px; display:flex; align-items:center; justify-content:center; gap:10px;" onclick="loginOwner()"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:20px;background:#fff;border-radius:2px;padding:2px;">Googleでログイン</button></div>
+<div class="login-container"><div style="font-weight:bold; margin-bottom:20px;">オーナーログイン</div><button type="button" class="btn-large" style="background:var(--primary); color:white; margin-top:20px;" onclick="loginOwner()">ログイン</button><div style="font-size:12px;color:#aaa;margin-top:12px;text-align:center;">※設定画面でメール・パスワードを登録してください</div></div>
 </div>
 
 <div id="view-admin" class="view">
@@ -970,14 +978,20 @@ function showSaleDetail(s) {
 }
 function openPrinterSettings() {
   document.getElementById('printer-ip-input').value = getPrinterIP();
+  document.getElementById('owner-email-input').value = localStorage.getItem('ownerEmail') || '';
+  document.getElementById('owner-pass-input').value = localStorage.getItem('ownerPass') || '';
   document.getElementById('overlay-printer-settings').style.display = 'flex';
 }
 function savePrinterSettings() {
   const ip = document.getElementById('printer-ip-input').value.trim();
   if (!ip) return alert('IPアドレスを入力してください');
   localStorage.setItem('printer_ip', ip);
+  const email = document.getElementById('owner-email-input').value.trim();
+  const pass = document.getElementById('owner-pass-input').value.trim();
+  if(email) localStorage.setItem('ownerEmail', email);
+  if(pass) localStorage.setItem('ownerPass', pass);
   document.getElementById('overlay-printer-settings').style.display = 'none';
-  alert('保存しました: http://' + ip);
+  alert('保存しました');
 }
 function showIndex() {
   const wasEditing = window.isEditing;

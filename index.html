@@ -116,12 +116,12 @@ import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc, q
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
-apiKey: "AIzaSyCDEGvAxq3S1HXKuD78dpxYA2Tde2fSlig",
-authDomain: "mifune-pos.firebaseapp.com",
-projectId: "mifune-pos",
-storageBucket: "mifune-pos.firebasestorage.app",
-messagingSenderId: "128289039063",
-appId: "1:128289039063:web:f82b46a79a23dd02b10692"
+apiKey: "AIzaSyD_m3-1_fHNBNNhDRt6ZWXsilptcrvXCM",
+authDomain: "revoreji.firebaseapp.com",
+projectId: "revoreji",
+storageBucket: "revoreji.firebasestorage.app",
+messagingSenderId: "91184668244",
+appId: "1:91184668244:web:22e34995fe0f69d1e9d7c1"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -156,7 +156,7 @@ showAdmin('day');
 window.logoutOwner = () => { signOut(auth); alert("ログアウト完了"); showIndex(); };
 
 function startTablesListener() {
-  return onSnapshot(collection(db, "tables"), (snapshot) => {
+  return onSnapshot(collection(db, "stores/mifune/tables"), (snapshot) => {
 if(window.isEditing) return;
 const tablesList = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
 const cloudIds = snapshot.docs.map(d => d.id);
@@ -193,14 +193,14 @@ if (data.nomihodaiStart) {
 // ▼ モバイルオーダー検知・自動キッチン印刷
 const mobileOrders = data.mobileOrders || [];
 if (mobileOrders.length > 0) {
-    setDoc(doc(db, "tables", tId), { mobileOrders: [] }, { merge: true }).then(() => {
+    setDoc(doc(db, "stores/mifune/tables", tId), { mobileOrders: [] }, { merge: true }).then(() => {
         autoKitchenPrint(tId, mobileOrders, 'M');
     });
 }
 // ▼ ハンディオーダー検知・自動キッチン印刷
 const handyOrders = data.handyOrders || [];
 if (handyOrders.length > 0) {
-    setDoc(doc(db, "tables", tId), { handyOrders: [] }, { merge: true }).then(() => {
+    setDoc(doc(db, "stores/mifune/tables", tId), { handyOrders: [] }, { merge: true }).then(() => {
         autoKitchenPrint(tId, handyOrders, 'H');
     });
 }
@@ -216,7 +216,7 @@ renderIndex(); updateFooter();
 startTablesListener();
 
 // ▼ カスタム席名Firestore同期
-onSnapshot(doc(db, '_system', 'config'), (snap) => {
+onSnapshot(doc(db, 'stores/mifune/_system', 'config'), (snap) => {
   if (!snap.exists()) return;
   const data = snap.data();
   if (Array.isArray(data.customTables)) {
@@ -231,12 +231,12 @@ onSnapshot(doc(db, '_system', 'config'), (snap) => {
 // ▲ カスタム席名Firestore同期
 
 // ▼ 印刷キュー監視（このデバイスがプリンター担当）
-onSnapshot(doc(db, '_system', 'printQueue'), (snap) => {
+onSnapshot(doc(db, 'stores/mifune/_system', 'printQueue'), (snap) => {
     if (!snap.exists()) return;
     const jobs = snap.data().jobs || [];
     if (jobs.length === 0) return;
     // クリアしてから印刷
-    setDoc(doc(db, '_system', 'printQueue'), { jobs: [] }, { merge: true }).then(() => {
+    setDoc(doc(db, 'stores/mifune/_system', 'printQueue'), { jobs: [] }, { merge: true }).then(() => {
         jobs.forEach(job => {
             const t = new StarWebPrintTrader({url: getPrinterUrl()});
             t.onError = () => console.warn('印刷キューエラー');
@@ -259,7 +259,7 @@ window.queuePrint = async function(xmlRequest) {
 
 window.cloudSync = async (tableId) => {
 try {
-await setDoc(doc(db, "tables", tableId), {
+await setDoc(doc(db, "stores/mifune/tables", tableId), {
 history: JSON.parse(localStorage.getItem('history_' + tableId) || '[]'),
 guests: parseInt(localStorage.getItem('guests_' + tableId)) || 0,
 checkin: localStorage.getItem('checkin_' + tableId) || "--:--",
@@ -307,7 +307,7 @@ let subtotal = 0, tax = 0;
 hist.forEach(i => { subtotal += i.price * i.qty; tax += Math.floor(i.price * i.qty * i.rate); });
 
 try {
-    await addDoc(collection(db, "sales"), {
+    await addDoc(collection(db, "stores/mifune/sales"), {
         tableId: tableId, guests: guests, checkin: checkin,
         checkout: new Date().getHours().toString().padStart(2, '0') + ":" + new Date().getMinutes().toString().padStart(2, '0'),
         items: hist, subtotal: subtotal, tax: tax, total: subtotal + tax,
@@ -315,7 +315,7 @@ try {
         timestamp: Timestamp.now()
     });
 } catch (e) { console.warn("売上保存失敗:", e.message); }
-try { await deleteDoc(doc(db, "tables", tableId)); } catch(e) { console.warn("テーブル削除失敗:", e.message); }
+try { await deleteDoc(doc(db, "stores/mifune/tables", tableId)); } catch(e) { console.warn("テーブル削除失敗:", e.message); }
 await clearCountdown(tableId);
 // カスタム席なら会計後に削除
 const customs = getCustomTableNames();
@@ -326,7 +326,7 @@ if (customs.includes(tableId)) {
 
 window.getSalesData = async (mode) => {
 const now = new Date();
-const snap = await getDocs(collection(db, "sales"));
+const snap = await getDocs(collection(db, "stores/mifune/sales"));
 let res = [];
 snap.forEach(d => {
     let data = d.data(); data.id = d.id;
@@ -339,22 +339,22 @@ snap.forEach(d => {
 return res.sort((a,b) => b.timestamp - a.timestamp);
 };
 
-window.deleteSaleDoc = async (id) => { if(confirm("消去しますか？")) { await deleteDoc(doc(db, "sales", id)); await new Promise(r => setTimeout(r, 500)); window.showAdmin('day'); } };
+window.deleteSaleDoc = async (id) => { if(confirm("消去しますか？")) { await deleteDoc(doc(db, "stores/mifune/sales", id)); await new Promise(r => setTimeout(r, 500)); window.showAdmin('day'); } };
 window.deleteDaySales = async (label) => {
     const entry = Object.values(window._dayDeleteMap || {}).find(x => x.label === label);
     if (!entry) return alert("データが見つかりません");
     if (confirm(`${label} の${entry.ids.length}件をまとめて削除しますか？`)) {
-        await Promise.all(entry.ids.map(id => deleteDoc(doc(db, "sales", id))));
+        await Promise.all(entry.ids.map(id => deleteDoc(doc(db, "stores/mifune/sales", id))));
         await new Promise(r => setTimeout(r, 500));
         window.showAdmin('dates');
     }
 };
-window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "tables", tableId)); };
+window.cloudDelete = async (tableId) => { await deleteDoc(doc(db, "stores/mifune/tables", tableId)); };
 
 // 飲み放題開始をFirestoreに書き込み（serverTimestamp使用・updatedAtと同時書き込み）
 window.cloudSyncNomi = async (tableId) => {
     try {
-        await setDoc(doc(db, "tables", tableId), {
+        await setDoc(doc(db, "stores/mifune/tables", tableId), {
             nomihodaiStart: serverTimestamp(),
             nomiTotalMinutes: NOMIHODAI_MINUTES,
             updatedAt: serverTimestamp()
@@ -364,7 +364,7 @@ window.cloudSyncNomi = async (tableId) => {
 
 window.cloudSyncNomiEncho = async (tableId, totalMinutes) => {
     try {
-        await setDoc(doc(db, "tables", tableId), {
+        await setDoc(doc(db, "stores/mifune/tables", tableId), {
             nomiTotalMinutes: totalMinutes,
             updatedAt: serverTimestamp()
         }, { merge: true });
@@ -374,7 +374,7 @@ window.cloudSyncNomiEncho = async (tableId, totalMinutes) => {
 // 飲み放題終了をFirestoreに書き込み
 window.cloudSyncNomiClear = async (tableId) => {
     try {
-        await setDoc(doc(db, "tables", tableId), { nomihodaiStart: null, nomiTotalMinutes: null }, { merge: true });
+        await setDoc(doc(db, "stores/mifune/tables", tableId), { nomihodaiStart: null, nomiTotalMinutes: null }, { merge: true });
     } catch(e) { console.warn('nomihodaiクリア失敗:', e.message); }
 };
 
@@ -764,7 +764,7 @@ function getCustomTableNames() { return JSON.parse(localStorage.getItem('customT
 function saveCustomTableNames(arr) {
   localStorage.setItem('customTables', JSON.stringify(arr));
   // Firestoreに同期
-  window._setDoc(window._doc(db, '_system', 'config'), { customTables: arr }, { merge: true }).catch(e => console.warn('customTables同期エラー:', e));
+  window._setDoc(window._doc(db, 'stores/mifune/_system', 'config'), { customTables: arr }, { merge: true }).catch(e => console.warn('customTables同期エラー:', e));
 }
 function getTablesL() { return [...baseTablesL, ...getCustomTableNames()]; }
 const tablesL = baseTablesL; // 後方互換
@@ -985,7 +985,7 @@ function showIndex() {
   document.getElementById('view-index').style.display = 'flex';
   if (wasEditing) {
     // カート・履歴から戻ったとき最新データを強制取得
-    getDocs(collection(db, "tables")).then(snapshot => {
+    getDocs(collection(db, "stores/mifune/tables")).then(snapshot => {
       const tablesList = ['C-a', 'C-b', 'C-c', '01', '02', '03', '04', '05', '06', '07', 'テイクアウト', '無人'];
       const cloudIds = snapshot.docs.map(d => d.id);
       tablesList.forEach(tId => {

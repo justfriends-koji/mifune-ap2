@@ -239,7 +239,8 @@ onSnapshot(doc(db, 'stores/mifune/_system', 'printQueue'), (snap) => {
     // クリアしてから印刷
     setDoc(doc(db, 'stores/mifune/_system', 'printQueue'), { jobs: [] }, { merge: true }).then(() => {
         jobs.forEach(job => {
-            const t = new StarWebPrintTrader({url: getPrinterUrl()});
+            const url = job.type === 'receipt' ? getReceiptPrinterUrl() : getKitchenPrinterUrl();
+            const t = new StarWebPrintTrader({url: url});
             t.onError = () => console.warn('印刷キューエラー');
             t.sendMessage({request: job.xml});
         });
@@ -249,10 +250,10 @@ onSnapshot(doc(db, 'stores/mifune/_system', 'printQueue'), (snap) => {
 
 
 // ▼▼▼ Firebase印刷キュー ▼▼▼
-window.queuePrint = async function(xmlRequest) {
+window.queuePrint = async function(xmlRequest, printerType) {
     try {
-        await window._setDoc(window._doc(window.db, '_system', 'printQueue'), {
-            jobs: window._arrayUnion({ xml: xmlRequest, id: Date.now() })
+        await window._setDoc(window._doc(window.db, 'stores/mifune/_system', 'printQueue'), {
+            jobs: window._arrayUnion({ xml: xmlRequest, id: Date.now(), type: printerType || 'kitchen' })
         }, { merge: true });
     } catch(e) { console.warn('印刷キュー送信失敗:', e.message); alert('印刷送信に失敗しました'); }
 };
@@ -293,7 +294,7 @@ function autoKitchenPrint(tableId, mobileOrders, tag) { tag = tag || 'M';
     window.cloudSync(tableId); // 印刷結果に関わらず即反映
 
     if (!r) return;
-    const t = new StarWebPrintTrader({url: getPrinterUrl()});
+    const t = new StarWebPrintTrader({url: getKitchenPrinterUrl()});
     t.onError = () => { console.warn('モバイルオーダー印刷エラー'); };
     t.sendMessage({request: r});
 }
@@ -386,10 +387,18 @@ window.cloudSyncNomiClear = async (tableId) => {
   <div class="modal" style="max-width:360px;">
     <h3 style="margin:0 0 16px;font-size:18px;">⚙ 設定</h3>
     <div style="margin-bottom:12px;">
-      <label style="font-size:13px;color:#666;">プリンターIPアドレス</label>
+      <label style="font-size:13px;font-weight:bold;color:#333;">🍳 キッチンプリンター IP</label>
       <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
         <span style="font-size:14px;color:#333;">http://</span>
-        <input id="printer-ip-input" type="text" placeholder="192.168.1.6" inputmode="decimal"
+        <input id="printer-ip-input" type="text" placeholder="192.168.1.100" inputmode="decimal"
+          style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:16px;">
+      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:13px;font-weight:bold;color:#333;">🧾 レシートプリンター IP</label>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+        <span style="font-size:14px;color:#333;">http://</span>
+        <input id="receipt-ip-input" type="text" placeholder="192.168.1.101" inputmode="decimal"
           style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:16px;">
       </div>
     </div>
@@ -904,14 +913,17 @@ function startCountdownTick() {
 }
 
 let currentTable = "", currentCart = [], tempGuestCount = "0";
-const DEFAULT_PRINTER_IP = '192.168.1.6';
-function getPrinterUrl() {
-  const ip = localStorage.getItem('printer_ip') || DEFAULT_PRINTER_IP;
+const DEFAULT_KITCHEN_IP = '192.168.1.100';
+const DEFAULT_RECEIPT_IP = '192.168.1.101';
+function getKitchenPrinterUrl() {
+  const ip = localStorage.getItem('kitchen_ip') || DEFAULT_KITCHEN_IP;
   return 'http://' + ip + '/StarWebPRNT/SendMessage';
 }
-function getPrinterIP() { return localStorage.getItem('printer_ip') || DEFAULT_PRINTER_IP; }
-const KITCHEN_PRINTER_URL = getPrinterUrl();  // キッチンプリンター（将来分離）
-const RECEIPT_PRINTER_URL = getPrinterUrl();  // レシートプリンター（将来分離）
+function getReceiptPrinterUrl() {
+  const ip = localStorage.getItem('receipt_ip') || DEFAULT_RECEIPT_IP;
+  return 'http://' + ip + '/StarWebPRNT/SendMessage';
+}
+function getPrinterUrl() { return getKitchenPrinterUrl(); } // 後方互換
 const isTestMode = true;
 
 function hideAll() { document.querySelectorAll('.view').forEach(v => v.style.display = 'none'); }
@@ -972,14 +984,17 @@ function showSaleDetail(s) {
   document.getElementById('overlay-sale-detail').style.display = 'flex';
 }
 function openPrinterSettings() {
-  document.getElementById('printer-ip-input').value = getPrinterIP();
+  document.getElementById('printer-ip-input').value = localStorage.getItem('kitchen_ip') || DEFAULT_KITCHEN_IP;
+  document.getElementById('receipt-ip-input').value = localStorage.getItem('receipt_ip') || DEFAULT_RECEIPT_IP;
   document.getElementById('owner-pass-input').value = '';
   document.getElementById('overlay-printer-settings').style.display = 'flex';
 }
 function savePrinterSettings() {
-  const ip = document.getElementById('printer-ip-input').value.trim();
-  if (!ip) return alert('IPアドレスを入力してください');
-  localStorage.setItem('printer_ip', ip);
+  const kip = document.getElementById('printer-ip-input').value.trim();
+  const rip = document.getElementById('receipt-ip-input').value.trim();
+  if(!kip || !rip) return alert('両方のIPアドレスを入力してください');
+  localStorage.setItem('kitchen_ip', kip);
+  localStorage.setItem('receipt_ip', rip);
   const pass = document.getElementById('owner-pass-input').value.trim();
   if(pass) localStorage.setItem('ownerPass', pass);
   document.getElementById('overlay-printer-settings').style.display = 'none';
@@ -1264,7 +1279,7 @@ async function printReport(mode) {
         sorted.forEach(([key, s]) => { r += b.createTextElement({data: `${s.label}\n  ${s.c}件 / ${s.g}名 / ¥${s.t.toLocaleString()}\n`}); });
         r += b.createTextElement({data: `--------------------------------\n`});
         r += b.createCutPaperElement({type: 'partial'});
-        await window.queuePrint(r); alert("印刷しました");
+        await window.queuePrint(r, 'kitchen'); alert("印刷しました");
     } else {
         // 日計：過去10日分の選択肢
         const options = [];
@@ -1295,7 +1310,7 @@ async function printReport(mode) {
         r += b.createAlignmentElement({position: 'center'}); r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n【日計】\n`, width:2, height:2});
         r += b.createAlignmentElement({position: 'left'}); r += b.createTextElement({data: `${dateLabel}\n--------------------------------\n売上: ¥${total.toLocaleString()}\n客数: ${guests}名\n件数: ${sales.length}件\n--------------------------------\nもつ串: ${motsuCount}串\n鳥精肉: ${toriCount}串\n--------------------------------\n`});
         r += b.createCutPaperElement({type: 'partial'});
-        await window.queuePrint(r); alert("印刷しました");
+        await window.queuePrint(r, 'kitchen'); alert("印刷しました");
     }
 }
 
@@ -1502,7 +1517,7 @@ r += b.createTextElement({data: `ありがとうございました\n\n`});
 r += b.createCutPaperElement({type: 'partial'});
 }
 if(window.saveSaleToCloud) await window.saveSaleToCloud(currentTable, currentPaymentMethod);
-await window.queuePrint(r);
+await window.queuePrint(r, 'receipt');
 showIndex();
 }
 
@@ -1571,7 +1586,7 @@ async function printRyoshuusho() {
     r += b.createTextElement({data: `美唄焼鳥三船 東札幌店\n札幌市白石区東札幌2条3丁目9-2\nTEL: 011-816-8881\n登録番号 T4430001061003\n\n`});
     r += b.createCutPaperElement({type: 'partial'});
 
-    await window.queuePrint(r);
+    await window.queuePrint(r, 'receipt');
     closeRyoshuusho(); alert("領収書を印刷しました");
 }
 

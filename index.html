@@ -132,30 +132,29 @@ window.db = db; window._doc = doc; window._setDoc = setDoc; window._arrayUnion =
 window.currentUser = null;
 window.isEditing = false;
 
-onAuthStateChanged(auth, (user) => {
-window.currentUser = user;
-const btnLabel = document.getElementById('admin-btn-label');
-if(user) {
-btnLabel.innerText = "売上管理(店主)";
-btnLabel.style.background = "#e8f5e9";
-if(document.getElementById('view-login').style.display !== 'none') showAdmin('day');
-} else {
-btnLabel.innerText = "売上管理";
-btnLabel.style.background = "#fff";
-}
-});
-
-window.loginOwner = async () => {
-  var e = localStorage.getItem('ownerEmail') || '';
-  var p = localStorage.getItem('ownerPass') || '';
-  if(!e || !p){ alert('設定画面でメールとパスワードを登録してください'); return; }
-  try {
-    await signInWithEmailAndPassword(auth, e, p);
+// ローカルパスワード認証
+window.loginOwner = () => {
+  var input = document.getElementById('login-pass-input').value;
+  var saved = localStorage.getItem('ownerPass') || '';
+  if(!saved){ alert('設定画面でパスワードを設定してください'); return; }
+  if(input === saved){
+    window.currentUser = true;
+    var btnLabel = document.getElementById('admin-btn-label');
+    btnLabel.innerText = '売上管理(店主)';
+    btnLabel.style.background = '#e8f5e9';
     showAdmin('day');
-  } catch(err) { alert('ログイン失敗: メール・パスワードを確認してください'); }
+  } else {
+    alert('パスワードが違います');
+  }
 };
 
-window.logoutOwner = () => { signOut(auth); alert("ログアウト完了"); showIndex(); };
+window.logoutOwner = () => {
+  window.currentUser = null;
+  var btnLabel = document.getElementById('admin-btn-label');
+  btnLabel.innerText = '売上管理';
+  btnLabel.style.background = '#fff';
+  alert('ログアウト完了'); showIndex();
+};
 
 function startTablesListener() {
   return onSnapshot(collection(db, "stores/mifune/tables"), (snapshot) => {
@@ -395,14 +394,10 @@ window.cloudSyncNomiClear = async (tableId) => {
       </div>
     </div>
     <div style="border-top:1px solid #eee;margin:16px 0;padding-top:16px;">
-      <label style="font-size:13px;font-weight:bold;color:#333;">🔐 オーナーログイン設定</label>
-      <input id="owner-email-input" type="email" placeholder="メールアドレス"
+      <label style="font-size:13px;font-weight:bold;color:#333;">🔐 オーナーパスワード設定</label>
+      <input id="owner-pass-input" type="password" placeholder="新しいパスワード"
         style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;margin-top:8px;box-sizing:border-box;">
-      <input id="owner-pass-input" type="password" placeholder="パスワード"
-        style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;margin-top:8px;box-sizing:border-box;">
-    </div>
-    <div style="font-size:12px;color:#888;margin-bottom:16px;">
-      ※ Firebase AuthenticationのメールとパスワードをFirebase Consoleで登録してください
+      <div style="font-size:11px;color:#aaa;margin-top:4px;">※入力した場合のみ更新されます</div>
     </div>
     <div style="display:flex;gap:8px;">
       <button onclick="savePrinterSettings()" style="flex:1;padding:12px;background:#4caf50;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;">保存</button>
@@ -427,7 +422,7 @@ window.cloudSyncNomiClear = async (tableId) => {
 
 <div id="view-login" class="view">
 <header><div class="header-left"><span class="back-btn" onclick="showIndex()">＜</span><span>認証</span></div></header>
-<div class="login-container"><div style="font-weight:bold; margin-bottom:20px;">オーナーログイン</div><button type="button" class="btn-large" style="background:var(--primary); color:white; margin-top:20px;" onclick="loginOwner()">ログイン</button><div style="font-size:12px;color:#aaa;margin-top:12px;text-align:center;">※設定画面でメール・パスワードを登録してください</div></div>
+<div class="login-container"><div style="font-weight:bold; margin-bottom:20px;">オーナーログイン</div><input type="password" id="login-pass-input" class="login-input" placeholder="パスワード"><button type="button" class="btn-large" style="background:var(--primary); color:white; margin-top:20px;" onclick="loginOwner()">ログイン</button></div>
 </div>
 
 <div id="view-admin" class="view">
@@ -978,17 +973,14 @@ function showSaleDetail(s) {
 }
 function openPrinterSettings() {
   document.getElementById('printer-ip-input').value = getPrinterIP();
-  document.getElementById('owner-email-input').value = localStorage.getItem('ownerEmail') || '';
-  document.getElementById('owner-pass-input').value = localStorage.getItem('ownerPass') || '';
+  document.getElementById('owner-pass-input').value = '';
   document.getElementById('overlay-printer-settings').style.display = 'flex';
 }
 function savePrinterSettings() {
   const ip = document.getElementById('printer-ip-input').value.trim();
   if (!ip) return alert('IPアドレスを入力してください');
   localStorage.setItem('printer_ip', ip);
-  const email = document.getElementById('owner-email-input').value.trim();
   const pass = document.getElementById('owner-pass-input').value.trim();
-  if(email) localStorage.setItem('ownerEmail', email);
   if(pass) localStorage.setItem('ownerPass', pass);
   document.getElementById('overlay-printer-settings').style.display = 'none';
   alert('保存しました');

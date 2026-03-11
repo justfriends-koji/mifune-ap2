@@ -404,9 +404,11 @@ window.cloudSyncNomiClear = async (tableId) => {
     </div>
     <div style="border-top:1px solid #eee;margin:16px 0;padding-top:16px;">
       <label style="font-size:13px;font-weight:bold;color:#333;">🔐 オーナーパスワード設定</label>
+      <input id="owner-current-pass-input" type="password" placeholder="現在のパスワード"
+        style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;margin-top:8px;box-sizing:border-box;">
       <input id="owner-pass-input" type="password" placeholder="新しいパスワード"
         style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;margin-top:8px;box-sizing:border-box;">
-      <div style="font-size:11px;color:#aaa;margin-top:4px;">※入力した場合のみ更新されます</div>
+      <div style="font-size:11px;color:#aaa;margin-top:4px;">※初回設定時は現在のパスワード不要</div>
     </div>
     <div style="display:flex;gap:8px;">
       <button onclick="savePrinterSettings()" style="flex:1;padding:12px;background:#4caf50;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;">保存</button>
@@ -986,6 +988,7 @@ function showSaleDetail(s) {
 function openPrinterSettings() {
   document.getElementById('printer-ip-input').value = localStorage.getItem('kitchen_ip') || DEFAULT_KITCHEN_IP;
   document.getElementById('receipt-ip-input').value = localStorage.getItem('receipt_ip') || DEFAULT_RECEIPT_IP;
+  document.getElementById('owner-current-pass-input').value = '';
   document.getElementById('owner-pass-input').value = '';
   document.getElementById('overlay-printer-settings').style.display = 'flex';
 }
@@ -996,7 +999,12 @@ function savePrinterSettings() {
   localStorage.setItem('kitchen_ip', kip);
   localStorage.setItem('receipt_ip', rip);
   const pass = document.getElementById('owner-pass-input').value.trim();
-  if(pass) localStorage.setItem('ownerPass', pass);
+  if(pass) {
+    const current = document.getElementById('owner-current-pass-input').value.trim();
+    const saved = localStorage.getItem('ownerPass') || '';
+    if(saved && current !== saved) { alert('現在のパスワードが違います'); return; }
+    localStorage.setItem('ownerPass', pass);
+  }
   document.getElementById('overlay-printer-settings').style.display = 'none';
   alert('保存しました');
 }
